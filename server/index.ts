@@ -2,6 +2,9 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import { spawn } from "child_process";
+import path from "path";
+import { createProxyMiddleware } from "http-proxy-middleware";
 
 const app = express();
 const httpServer = createServer(app);
@@ -11,6 +14,21 @@ declare module "http" {
     rawBody: unknown;
   }
 }
+
+app.use('/mcp', createProxyMiddleware({
+  target: 'http://localhost:8000',
+  changeOrigin: true,
+  pathRewrite: (path) => `/mcp${path}`,
+  on: {
+    error: (err, req, res) => {
+      console.error('MCP Proxy Error:', err.message);
+      if (res && 'writeHead' in res) {
+        (res as any).writeHead(502, { 'Content-Type': 'application/json' });
+        (res as any).end(JSON.stringify({ error: 'MCP Server unavailable' }));
+      }
+    }
+  }
+}));
 
 app.use(
   express.json({
@@ -31,6 +49,38 @@ export function log(message: string, source = "express") {
   });
 
   console.log(`${formattedTime} [${source}] ${message}`);
+}
+
+function startMcpServer() {
+  const mcpServerPath = path.resolve(process.cwd(), "mcp_server");
+  
+  const mcpProcess = spawn("python", ["main.py"], {
+    cwd: mcpServerPath,
+    stdio: ["ignore", "pipe", "pipe"],
+    detached: false,
+  });
+
+  mcpProcess.stdout?.on("data", (data) => {
+    log(`${data.toString().trim()}`, "mcp-server");
+  });
+
+  mcpProcess.stderr?.on("data", (data) => {
+    log(`${data.toString().trim()}`, "mcp-server");
+  });
+
+  mcpProcess.on("error", (error) => {
+    log(`Failed to start MCP server: ${error.message}`, "mcp-server");
+  });
+
+  mcpProcess.on("exit", (code) => {
+    log(`MCP server exited with code ${code}`, "mcp-server");
+    if (code !== 0) {
+      log("Restarting MCP server in 5 seconds...", "mcp-server");
+      setTimeout(startMcpServer, 5000);
+    }
+  });
+
+  return mcpProcess;
 }
 
 app.use((req, res, next) => {
@@ -60,6 +110,9 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  log("Starting MCP server...", "mcp-server");
+  startMcpServer();
+  
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
@@ -75,9 +128,6 @@ app.use((req, res, next) => {
     return res.status(status).json({ message });
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
   if (process.env.NODE_ENV === "production") {
     serveStatic(app);
   } else {
@@ -85,10 +135,6 @@ app.use((req, res, next) => {
     await setupVite(httpServer, app);
   }
 
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || "5000", 10);
   httpServer.listen(
     {
