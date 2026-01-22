@@ -31,9 +31,9 @@ import {
 
 const mainMenuItems = [
   { title: "For You", url: "/", icon: Home, badge: null },
-  { title: "My Queue", url: "/queue", icon: Inbox, badge: "5" },
+  { title: "My Queue", url: "/queue", icon: Inbox, badge: null },
   { title: "Resolved", url: "/resolved", icon: CheckCircle, badge: null },
-  { title: "Escalated", url: "/escalated", icon: AlertTriangle, badge: "2" },
+  { title: "Escalated", url: "/escalated", icon: AlertTriangle, badge: null },
 ];
 
 const discoverItems = [
