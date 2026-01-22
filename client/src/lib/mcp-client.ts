@@ -34,11 +34,23 @@ export async function mcpRequest<T>(
   return response.json();
 }
 
+export interface CreateTicketData {
+  title: string;
+  description: string;
+  priority: string;
+  category: string;
+  assetTag?: string;
+  assetName?: string;
+  hasBounty?: boolean;
+  bountyAmount?: number;
+}
+
 export const mcpClient = {
   getFeed: () => mcpRequest('GET', '/tickets/feed'),
   getQueue: () => mcpRequest('GET', '/tickets/queue'),
   getResolved: () => mcpRequest('GET', '/tickets/resolved'),
   getEscalated: () => mcpRequest('GET', '/tickets/escalated'),
+  createTicket: (data: CreateTicketData) => mcpRequest('POST', '/tickets', data),
   assignTicket: (ticketId: string) => mcpRequest('POST', `/tickets/${ticketId}/assign`),
   resolveTicket: (ticketId: string) => mcpRequest('POST', `/tickets/${ticketId}/resolve`),
   escalateTicket: (ticketId: string) => mcpRequest('POST', `/tickets/${ticketId}/escalate`),

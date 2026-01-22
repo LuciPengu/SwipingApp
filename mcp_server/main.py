@@ -71,6 +71,16 @@ class ActivityCreate(BaseModel):
     type: str
     content: str
 
+class TicketCreate(BaseModel):
+    title: str
+    description: str
+    priority: str = "medium"
+    category: str = "other"
+    assetTag: Optional[str] = None
+    assetName: Optional[str] = None
+    hasBounty: bool = False
+    bountyAmount: int = 0
+
 class AgentStats(BaseModel):
     streak: int
     coins: int
@@ -96,6 +106,42 @@ def init_data():
     pass
 
 init_data()
+
+@app.post("/mcp/tickets")
+async def create_ticket(ticket: TicketCreate, user = Depends(get_current_user)):
+    user_id = user.id if user else "anonymous"
+    user_email = user.email if user else "Anonymous User"
+    
+    now = datetime.utcnow()
+    sla_hours = {"critical": 2, "high": 4, "medium": 8, "low": 24}
+    sla_deadline = now + timedelta(hours=sla_hours.get(ticket.priority, 8))
+    
+    new_ticket = {
+        "id": str(uuid.uuid4()),
+        "title": ticket.title,
+        "description": ticket.description,
+        "priority": ticket.priority,
+        "status": "open",
+        "category": ticket.category,
+        "requesterId": user_id,
+        "requesterName": user_email,
+        "requesterAvatar": None,
+        "assigneeId": None,
+        "assigneeName": None,
+        "assetTag": ticket.assetTag,
+        "assetName": ticket.assetName,
+        "slaDeadline": sla_deadline.isoformat() + "Z",
+        "createdAt": now.isoformat() + "Z",
+        "updatedAt": now.isoformat() + "Z",
+        "resolvedAt": None,
+        "hasBounty": ticket.hasBounty,
+        "bountyAmount": ticket.bountyAmount,
+        "viewCount": 0,
+        "activityCount": 0
+    }
+    
+    tickets_db[new_ticket["id"]] = new_ticket
+    return new_ticket
 
 @app.get("/mcp/tickets/feed")
 async def get_feed():
