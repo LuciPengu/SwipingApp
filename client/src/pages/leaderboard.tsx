@@ -65,6 +65,27 @@ export default function Leaderboard() {
   const topThree = users?.slice(0, 3) || [];
   const rest = users?.slice(3) || [];
 
+  if (!users || users.length === 0) {
+    return (
+      <div className="p-6" data-testid="page-leaderboard">
+        <div className="flex items-center gap-3 mb-6">
+          <Trophy className="w-8 h-8 text-primary" />
+          <div>
+            <h1 className="text-2xl font-bold">Leaderboard</h1>
+            <p className="text-muted-foreground">Top performers this week</p>
+          </div>
+        </div>
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <Trophy className="w-16 h-16 text-muted-foreground/30 mb-4" />
+          <h3 className="text-lg font-semibold mb-2">No agents yet</h3>
+          <p className="text-muted-foreground max-w-sm">
+            Start resolving tickets to appear on the leaderboard.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6" data-testid="page-leaderboard">
       <div className="flex items-center gap-3 mb-6">

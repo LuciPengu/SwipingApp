@@ -42,52 +42,7 @@ interface KnowledgeVideo {
   coinsEarned: number;
 }
 
-const mockVideos: KnowledgeVideo[] = [
-  {
-    id: "1",
-    title: "How to Fix VPN Connection Issues",
-    description: "Step by step guide to troubleshoot common VPN problems",
-    category: "network",
-    authorName: "Sarah Tech",
-    views: 1250,
-    likes: 89,
-    duration: "2:34",
-    coinsEarned: 125,
-  },
-  {
-    id: "2",
-    title: "Quick Fix: Laptop Won't Turn On",
-    description: "Common power issues and how to resolve them",
-    category: "hardware",
-    authorName: "Mike Support",
-    views: 890,
-    likes: 67,
-    duration: "1:45",
-    coinsEarned: 89,
-  },
-  {
-    id: "3",
-    title: "Setting Up Two-Factor Authentication",
-    description: "Complete guide to enabling 2FA on all company apps",
-    category: "access",
-    authorName: "Alex Security",
-    views: 2100,
-    likes: 156,
-    duration: "3:12",
-    coinsEarned: 210,
-  },
-  {
-    id: "4",
-    title: "Microsoft Teams Troubleshooting",
-    description: "Fix audio, video, and connection issues",
-    category: "software",
-    authorName: "Jordan Help",
-    views: 567,
-    likes: 34,
-    duration: "4:20",
-    coinsEarned: 56,
-  },
-];
+const mockVideos: KnowledgeVideo[] = [];
 
 export default function Knowledge() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -151,6 +106,15 @@ export default function Knowledge() {
 
       {/* Video Grid */}
       <ScrollArea className="h-[calc(100vh-280px)]">
+        {filteredVideos.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <PlayCircle className="w-16 h-16 text-muted-foreground/30 mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No videos yet</h3>
+            <p className="text-muted-foreground max-w-sm">
+              Be the first to share a solution video with the team.
+            </p>
+          </div>
+        ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredVideos.map((video) => {
             const CategoryIcon = categoryIcons[video.category as keyof typeof categoryIcons] || HelpCircle;
@@ -245,6 +209,7 @@ export default function Knowledge() {
             );
           })}
         </div>
+        )}
       </ScrollArea>
     </div>
   );

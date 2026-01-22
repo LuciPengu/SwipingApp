@@ -221,13 +221,7 @@ async def get_agent_stats(user = Depends(get_current_user)):
 
 @app.get("/mcp/leaderboard")
 async def get_leaderboard():
-    return [
-        {"id": "agent-1", "username": "mike_support", "displayName": "Agent Mike", "avatar": None, "ticketsResolved": 156, "streak": 12, "coins": 3420, "rank": 1},
-        {"id": "agent-2", "username": "sarah_tech", "displayName": "Sarah Tech", "avatar": None, "ticketsResolved": 142, "streak": 8, "coins": 2890, "rank": 2},
-        {"id": "agent-3", "username": "alex_fix", "displayName": "Alex Fixer", "avatar": None, "ticketsResolved": 128, "streak": 5, "coins": 2450, "rank": 3},
-        {"id": "agent-4", "username": "emma_help", "displayName": "Emma Helper", "avatar": None, "ticketsResolved": 98, "streak": 3, "coins": 1820, "rank": 4},
-        {"id": "agent-5", "username": "james_it", "displayName": "James IT", "avatar": None, "ticketsResolved": 87, "streak": 2, "coins": 1540, "rank": 5}
-    ]
+    return []
 
 @app.get("/mcp/health")
 async def health_check():
