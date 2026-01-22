@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "web", "postgresql-16"]
+modules = ["nodejs-20", "web", "postgresql-16", "python-3.11"]
 run = "npm run dev"
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
@@ -8,6 +8,10 @@ channel = "stable-24_05"
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[[ports]]
+localPort = 8000
+externalPort = 8000
 
 [env]
 PORT = "5000"
@@ -37,3 +41,11 @@ author = "agent"
 task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
+
+[userenv]
+
+[userenv.shared]
+VITE_SUPABASE_URL = "https://jyhcpuvxthfbrdmwloqn.supabase.co"
+VITE_SUPABASE_ANON_KEY = "sb_publishable_MdBIFmy7e_eB1VukGGzrZg_VCTEytKj"
+SUPABASE_URL = "https://jyhcpuvxthfbrdmwloqn.supabase.co"
+SUPABASE_ANON_KEY = "sb_publishable_MdBIFmy7e_eB1VukGGzrZg_VCTEytKj"

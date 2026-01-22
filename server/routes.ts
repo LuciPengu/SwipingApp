@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { createProxyMiddleware } from "http-proxy-middleware";
 import { storage } from "./storage";
 import { createActivitySchema } from "@shared/schema";
 import { fromError } from "zod-validation-error";
@@ -12,6 +13,24 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  
+  // Proxy /mcp requests to FastAPI MCP server
+  app.use('/mcp', createProxyMiddleware({
+    target: 'http://localhost:8000',
+    changeOrigin: true,
+    pathRewrite: {
+      '^/mcp': '/mcp'
+    },
+    on: {
+      error: (err, req, res) => {
+        console.error('MCP Proxy Error:', err.message);
+        if (res && 'writeHead' in res) {
+          (res as any).writeHead(502, { 'Content-Type': 'application/json' });
+          (res as any).end(JSON.stringify({ error: 'MCP Server unavailable' }));
+        }
+      }
+    }
+  }));
   
   // ========== TICKET FEED ENDPOINTS ==========
   

@@ -15,6 +15,7 @@ import {
   ArrowUpRight,
   Calendar
 } from "lucide-react";
+import { mcpClient } from "@/lib/mcp-client";
 import type { Ticket } from "@shared/schema";
 
 const categoryIcons = {
@@ -34,7 +35,8 @@ const priorityColors = {
 
 export default function Escalated() {
   const { data: tickets, isLoading } = useQuery<Ticket[]>({
-    queryKey: ['/api/tickets/escalated'],
+    queryKey: ['/mcp/tickets/escalated'],
+    queryFn: () => mcpClient.getEscalated() as Promise<Ticket[]>,
   });
 
   const getInitials = (name: string) => {

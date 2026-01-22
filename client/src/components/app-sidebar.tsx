@@ -14,6 +14,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/auth-context";
 import { 
   Home, 
   PlayCircle, 
@@ -24,7 +25,7 @@ import {
   Settings,
   Flame,
   Bell,
-  Search,
+  LogOut,
   PlusCircle
 } from "lucide-react";
 
@@ -47,6 +48,11 @@ interface AppSidebarProps {
 
 export function AppSidebar({ streak = 0, coins = 0 }: AppSidebarProps) {
   const [location] = useLocation();
+  const { user, signOut } = useAuth();
+
+  const getInitials = (name: string) => {
+    return name.split(/[\s@]/).map(n => n[0]).filter(Boolean).join("").toUpperCase().slice(0, 2);
+  };
 
   return (
     <Sidebar>
@@ -158,18 +164,25 @@ export function AppSidebar({ streak = 0, coins = 0 }: AppSidebarProps) {
           <Avatar className="w-9 h-9">
             <AvatarImage src="" />
             <AvatarFallback className="bg-primary text-primary-foreground text-sm">
-              AG
+              {user ? getInitials(user.displayName || user.email) : 'AG'}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate" data-testid="sidebar-user-name">Agent Mike</p>
+            <p className="text-sm font-medium truncate" data-testid="sidebar-user-name">
+              {user?.displayName || user?.email?.split('@')[0] || 'Agent'}
+            </p>
             <p className="text-xs text-sidebar-foreground/60">Tier 1 Support</p>
           </div>
           <Button size="icon" variant="ghost" data-testid="button-notifications">
             <Bell className="w-4 h-4" />
           </Button>
-          <Button size="icon" variant="ghost" data-testid="button-settings">
-            <Settings className="w-4 h-4" />
+          <Button 
+            size="icon" 
+            variant="ghost" 
+            onClick={() => signOut()}
+            data-testid="button-logout"
+          >
+            <LogOut className="w-4 h-4" />
           </Button>
         </div>
       </SidebarFooter>

@@ -17,7 +17,8 @@ import {
   HelpCircle,
   Coins
 } from "lucide-react";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
+import { mcpClient } from "@/lib/mcp-client";
 import { useToast } from "@/hooks/use-toast";
 import type { FeedTicket } from "@shared/schema";
 
@@ -40,16 +41,18 @@ export default function Queue() {
   const { toast } = useToast();
 
   const { data: tickets, isLoading } = useQuery<FeedTicket[]>({
-    queryKey: ['/api/tickets/queue'],
+    queryKey: ['/mcp/tickets/queue'],
+    queryFn: () => mcpClient.getQueue() as Promise<FeedTicket[]>,
   });
 
   const resolveMutation = useMutation({
     mutationFn: async (ticketId: string) => {
-      return apiRequest('POST', `/api/tickets/${ticketId}/resolve`);
+      return mcpClient.resolveTicket(ticketId);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/tickets/queue'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/agent/stats'] });
+      queryClient.invalidateQueries({ queryKey: ['/mcp/tickets/queue'] });
+      queryClient.invalidateQueries({ queryKey: ['/mcp/tickets/resolved'] });
+      queryClient.invalidateQueries({ queryKey: ['/mcp/agent/stats'] });
       toast({
         title: "Ticket Resolved",
         description: "Great job! Your streak continues.",
@@ -59,10 +62,11 @@ export default function Queue() {
 
   const escalateMutation = useMutation({
     mutationFn: async (ticketId: string) => {
-      return apiRequest('POST', `/api/tickets/${ticketId}/escalate`);
+      return mcpClient.escalateTicket(ticketId);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/tickets/queue'] });
+      queryClient.invalidateQueries({ queryKey: ['/mcp/tickets/queue'] });
+      queryClient.invalidateQueries({ queryKey: ['/mcp/tickets/escalated'] });
       toast({
         title: "Ticket Escalated",
         description: "This ticket has been sent to Tier 2.",

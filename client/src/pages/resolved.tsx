@@ -15,6 +15,7 @@ import {
   Coins,
   Calendar
 } from "lucide-react";
+import { mcpClient } from "@/lib/mcp-client";
 import type { Ticket } from "@shared/schema";
 
 const categoryIcons = {
@@ -27,7 +28,8 @@ const categoryIcons = {
 
 export default function Resolved() {
   const { data: tickets, isLoading } = useQuery<Ticket[]>({
-    queryKey: ['/api/tickets/resolved'],
+    queryKey: ['/mcp/tickets/resolved'],
+    queryFn: () => mcpClient.getResolved() as Promise<Ticket[]>,
   });
 
   const getInitials = (name: string) => {

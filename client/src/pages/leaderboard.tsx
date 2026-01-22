@@ -5,11 +5,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Trophy, Flame, Medal, Crown, Star } from "lucide-react";
+import { mcpClient } from "@/lib/mcp-client";
 import type { LeaderboardUser } from "@shared/schema";
 
 export default function Leaderboard() {
   const { data: users, isLoading } = useQuery<LeaderboardUser[]>({
-    queryKey: ['/api/leaderboard'],
+    queryKey: ['/mcp/leaderboard'],
+    queryFn: () => mcpClient.getLeaderboard() as Promise<LeaderboardUser[]>,
   });
 
   const getInitials = (name: string) => {
@@ -90,7 +92,7 @@ export default function Leaderboard() {
                   {getRankIcon(user.rank)}
                 </div>
                 <Avatar className={`w-20 h-20 mx-auto mb-4 ${user.rank === 1 ? 'ring-4 ring-yellow-500/50' : ''}`}>
-                  <AvatarImage src={user.avatarUrl || undefined} />
+                  <AvatarImage src={user.avatar || undefined} />
                   <AvatarFallback className="text-2xl bg-primary text-primary-foreground">
                     {getInitials(user.displayName)}
                   </AvatarFallback>
@@ -131,7 +133,7 @@ export default function Leaderboard() {
                     #{user.rank}
                   </span>
                   <Avatar className="w-10 h-10">
-                    <AvatarImage src={user.avatarUrl || undefined} />
+                    <AvatarImage src={user.avatar || undefined} />
                     <AvatarFallback className="bg-secondary">
                       {getInitials(user.displayName)}
                     </AvatarFallback>

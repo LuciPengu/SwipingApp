@@ -2,28 +2,31 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { TicketFeed } from "@/components/ticket-feed";
 import { AgentStats } from "@/components/agent-stats";
 import { useToast } from "@/hooks/use-toast";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
+import { mcpClient } from "@/lib/mcp-client";
 import type { FeedTicket, AgentStats as AgentStatsType } from "@shared/schema";
 
 export default function Home() {
   const { toast } = useToast();
 
   const { data: tickets, isLoading: ticketsLoading, refetch: refetchTickets } = useQuery<FeedTicket[]>({
-    queryKey: ['/api/tickets/feed'],
+    queryKey: ['/mcp/tickets/feed'],
+    queryFn: () => mcpClient.getFeed() as Promise<FeedTicket[]>,
   });
 
   const { data: stats, isLoading: statsLoading } = useQuery<AgentStatsType>({
-    queryKey: ['/api/agent/stats'],
+    queryKey: ['/mcp/agent/stats'],
+    queryFn: () => mcpClient.getAgentStats() as Promise<AgentStatsType>,
   });
 
   const assignMutation = useMutation({
     mutationFn: async (ticketId: string) => {
-      return apiRequest('POST', `/api/tickets/${ticketId}/assign`);
+      return mcpClient.assignTicket(ticketId);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/tickets/feed'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/tickets/queue'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/agent/stats'] });
+      queryClient.invalidateQueries({ queryKey: ['/mcp/tickets/feed'] });
+      queryClient.invalidateQueries({ queryKey: ['/mcp/tickets/queue'] });
+      queryClient.invalidateQueries({ queryKey: ['/mcp/agent/stats'] });
       toast({
         title: "Ticket Assigned",
         description: "This ticket is now in your queue.",
@@ -33,13 +36,13 @@ export default function Home() {
 
   const resolveMutation = useMutation({
     mutationFn: async (ticketId: string) => {
-      return apiRequest('POST', `/api/tickets/${ticketId}/resolve`);
+      return mcpClient.resolveTicket(ticketId);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/tickets/feed'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/tickets/queue'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/tickets/resolved'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/agent/stats'] });
+      queryClient.invalidateQueries({ queryKey: ['/mcp/tickets/feed'] });
+      queryClient.invalidateQueries({ queryKey: ['/mcp/tickets/queue'] });
+      queryClient.invalidateQueries({ queryKey: ['/mcp/tickets/resolved'] });
+      queryClient.invalidateQueries({ queryKey: ['/mcp/agent/stats'] });
       toast({
         title: "Ticket Resolved",
         description: "Great job! Your streak continues.",
@@ -49,12 +52,12 @@ export default function Home() {
 
   const escalateMutation = useMutation({
     mutationFn: async (ticketId: string) => {
-      return apiRequest('POST', `/api/tickets/${ticketId}/escalate`);
+      return mcpClient.escalateTicket(ticketId);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/tickets/feed'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/tickets/queue'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/tickets/escalated'] });
+      queryClient.invalidateQueries({ queryKey: ['/mcp/tickets/feed'] });
+      queryClient.invalidateQueries({ queryKey: ['/mcp/tickets/queue'] });
+      queryClient.invalidateQueries({ queryKey: ['/mcp/tickets/escalated'] });
       toast({
         title: "Ticket Escalated",
         description: "This ticket has been sent to Tier 2.",
@@ -89,7 +92,6 @@ export default function Home() {
 
   return (
     <div className="flex h-full" data-testid="page-home">
-      {/* Main Feed */}
       <div className="flex-1 h-full overflow-hidden">
         <TicketFeed
           tickets={tickets || []}
@@ -101,7 +103,6 @@ export default function Home() {
         />
       </div>
 
-      {/* Stats Sidebar - Desktop Only */}
       <div className="hidden lg:block w-80 border-l border-border p-4 overflow-y-auto">
         <h2 className="text-lg font-semibold mb-4">Your Performance</h2>
         <AgentStats 
