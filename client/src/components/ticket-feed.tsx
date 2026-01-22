@@ -56,7 +56,7 @@ export function TicketFeed({
   if (isLoading) {
     return (
       <div className="w-full h-full flex items-center justify-center p-4">
-        <div className="w-full max-w-md aspect-[9/16] relative">
+        <div className="w-full max-w-md aspect-[3/4] relative">
           <Skeleton className="w-full h-full rounded-lg" />
           <div className="absolute bottom-0 left-0 right-0 p-4 space-y-3">
             <Skeleton className="h-4 w-24" />
@@ -129,7 +129,7 @@ export function TicketFeed({
       </div>
 
       {/* Main Feed Card */}
-      <div className="w-full max-w-md aspect-[9/16] relative">
+      <div className="w-full max-w-md aspect-[3/4] relative">
         {currentTicket && (
           <TicketCard
             key={currentTicket.id}
