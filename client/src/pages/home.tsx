@@ -1,0 +1,114 @@
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { TicketFeed } from "@/components/ticket-feed";
+import { AgentStats } from "@/components/agent-stats";
+import { useToast } from "@/hooks/use-toast";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import type { FeedTicket, AgentStats as AgentStatsType } from "@shared/schema";
+
+export default function Home() {
+  const { toast } = useToast();
+
+  const { data: tickets, isLoading: ticketsLoading, refetch: refetchTickets } = useQuery<FeedTicket[]>({
+    queryKey: ['/api/tickets/feed'],
+  });
+
+  const { data: stats, isLoading: statsLoading } = useQuery<AgentStatsType>({
+    queryKey: ['/api/agent/stats'],
+  });
+
+  const assignMutation = useMutation({
+    mutationFn: async (ticketId: string) => {
+      return apiRequest('POST', `/api/tickets/${ticketId}/assign`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/tickets/feed'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/tickets/queue'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/agent/stats'] });
+      toast({
+        title: "Ticket Assigned",
+        description: "This ticket is now in your queue.",
+      });
+    },
+  });
+
+  const resolveMutation = useMutation({
+    mutationFn: async (ticketId: string) => {
+      return apiRequest('POST', `/api/tickets/${ticketId}/resolve`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/tickets/feed'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/tickets/queue'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/tickets/resolved'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/agent/stats'] });
+      toast({
+        title: "Ticket Resolved",
+        description: "Great job! Your streak continues.",
+      });
+    },
+  });
+
+  const escalateMutation = useMutation({
+    mutationFn: async (ticketId: string) => {
+      return apiRequest('POST', `/api/tickets/${ticketId}/escalate`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/tickets/feed'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/tickets/queue'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/tickets/escalated'] });
+      toast({
+        title: "Ticket Escalated",
+        description: "This ticket has been sent to Tier 2.",
+      });
+    },
+  });
+
+  const handleAssign = (ticketId: string) => {
+    assignMutation.mutate(ticketId);
+  };
+
+  const handleResolve = (ticketId: string) => {
+    resolveMutation.mutate(ticketId);
+  };
+
+  const handleEscalate = (ticketId: string) => {
+    escalateMutation.mutate(ticketId);
+  };
+
+  const handleRefresh = () => {
+    refetchTickets();
+  };
+
+  const defaultStats: AgentStatsType = {
+    streak: 0,
+    coins: 0,
+    ticketsResolved: 0,
+    ticketsAssigned: 0,
+    avgResponseTime: "0m",
+    rank: 0,
+  };
+
+  return (
+    <div className="flex h-full" data-testid="page-home">
+      {/* Main Feed */}
+      <div className="flex-1 h-full overflow-hidden">
+        <TicketFeed
+          tickets={tickets || []}
+          isLoading={ticketsLoading}
+          onAssign={handleAssign}
+          onResolve={handleResolve}
+          onEscalate={handleEscalate}
+          onRefresh={handleRefresh}
+        />
+      </div>
+
+      {/* Stats Sidebar - Desktop Only */}
+      <div className="hidden lg:block w-80 border-l border-border p-4 overflow-y-auto">
+        <h2 className="text-lg font-semibold mb-4">Your Performance</h2>
+        <AgentStats 
+          stats={stats || defaultStats} 
+          isLoading={statsLoading}
+        />
+      </div>
+    </div>
+  );
+}
