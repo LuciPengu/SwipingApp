@@ -56,14 +56,14 @@ export function PostCommentsSheet({ postId, open, onOpenChange }: PostCommentsSh
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="h-[70vh] rounded-t-xl">
+      <SheetContent side="bottom" className="h-[60vh] rounded-t-xl pb-8">
         <SheetHeader className="pb-2">
           <SheetTitle>Comments</SheetTitle>
         </SheetHeader>
         
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-[calc(100%-4rem)]">
           {/* Comments List */}
-          <div className="flex-1 overflow-y-auto space-y-4 pb-4" data-testid="container-comments">
+          <div className="flex-1 overflow-y-auto space-y-4 pb-4 mb-4" data-testid="container-comments">
             {isLoading ? (
               <>
                 {[1, 2, 3].map((i) => (
@@ -108,8 +108,8 @@ export function PostCommentsSheet({ postId, open, onOpenChange }: PostCommentsSh
             )}
           </div>
 
-          {/* Comment Input */}
-          <form onSubmit={handleSubmit} className="flex gap-2 pt-2 border-t">
+          {/* Comment Input - Fixed at bottom with extra padding */}
+          <form onSubmit={handleSubmit} className="flex gap-2 pt-3 pb-4 border-t bg-background sticky bottom-0">
             <Input
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
