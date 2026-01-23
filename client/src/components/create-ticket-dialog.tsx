@@ -43,6 +43,8 @@ export function CreateTicketDialog() {
     mutationFn: (data: CreateTicketData) => mcpClient.createTicket(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/mcp/tickets/feed'] });
+      queryClient.invalidateQueries({ queryKey: ['/mcp/feed/mixed'] });
+      queryClient.invalidateQueries({ queryKey: ['/mcp/tickets/queue'] });
       toast({
         title: "Ticket Created",
         description: "Your support ticket has been submitted.",
