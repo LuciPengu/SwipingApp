@@ -243,63 +243,73 @@ export function TicketCard({
       )}
 
       {/* Right Side Action Buttons */}
-      <div className="absolute right-3 bottom-32 flex flex-col items-center gap-5 z-10">
-        <Button
-          size="icon"
-          variant="ghost"
-          className={`w-12 h-12 rounded-full bg-black/30 backdrop-blur-sm flex flex-col items-center ${isLiked ? 'text-primary' : ''}`}
-          onClick={() => {
-            setIsLiked(!isLiked);
-            if (!isLiked) onAssign(ticket.id);
-          }}
-          data-testid={`button-assign-${ticket.id}`}
-        >
-          <Heart className={`w-6 h-6 ${isLiked ? 'fill-current' : ''}`} />
-        </Button>
-        <span className="text-xs text-white/80">{isLiked ? 'Assigned' : 'Assign'}</span>
+      <div className="absolute right-2 bottom-24 flex flex-col items-center gap-3 z-10">
+        <div className="flex flex-col items-center">
+          <Button
+            size="icon"
+            variant="ghost"
+            className={`w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm ${isLiked ? 'text-primary' : ''}`}
+            onClick={() => {
+              setIsLiked(!isLiked);
+              if (!isLiked) onAssign(ticket.id);
+            }}
+            data-testid={`button-assign-${ticket.id}`}
+          >
+            <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
+          </Button>
+          <span className="text-[10px] text-white/80 mt-0.5">{isLiked ? 'Assigned' : 'Assign'}</span>
+        </div>
 
-        <Button
-          size="icon"
-          variant="ghost"
-          className="w-12 h-12 rounded-full bg-black/30 backdrop-blur-sm"
-          onClick={() => onViewActivity(ticket.id)}
-          data-testid={`button-activity-${ticket.id}`}
-        >
-          <MessageCircle className="w-6 h-6" />
-        </Button>
-        <span className="text-xs text-white/80">{ticket.activityCount || 0}</span>
+        <div className="flex flex-col items-center">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm"
+            onClick={() => onViewActivity(ticket.id)}
+            data-testid={`button-activity-${ticket.id}`}
+          >
+            <MessageCircle className="w-5 h-5" />
+          </Button>
+          <span className="text-[10px] text-white/80 mt-0.5">{ticket.activityCount || 0}</span>
+        </div>
 
-        <Button
-          size="icon"
-          variant="ghost"
-          className="w-12 h-12 rounded-full bg-black/30 backdrop-blur-sm"
-          onClick={() => onResolve(ticket.id)}
-          data-testid={`button-resolve-${ticket.id}`}
-        >
-          <CheckCircle2 className="w-6 h-6 text-green-400" />
-        </Button>
-        <span className="text-xs text-white/80">Resolve</span>
+        <div className="flex flex-col items-center">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm"
+            onClick={() => onResolve(ticket.id)}
+            data-testid={`button-resolve-${ticket.id}`}
+          >
+            <CheckCircle2 className="w-5 h-5 text-green-400" />
+          </Button>
+          <span className="text-[10px] text-white/80 mt-0.5">Resolve</span>
+        </div>
 
-        <Button
-          size="icon"
-          variant="ghost"
-          className="w-12 h-12 rounded-full bg-black/30 backdrop-blur-sm"
-          onClick={() => onEscalate(ticket.id)}
-          data-testid={`button-escalate-${ticket.id}`}
-        >
-          <AlertTriangle className="w-6 h-6 text-orange-400" />
-        </Button>
-        <span className="text-xs text-white/80">Escalate</span>
+        <div className="flex flex-col items-center">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm"
+            onClick={() => onEscalate(ticket.id)}
+            data-testid={`button-escalate-${ticket.id}`}
+          >
+            <AlertTriangle className="w-5 h-5 text-orange-400" />
+          </Button>
+          <span className="text-[10px] text-white/80 mt-0.5">Escalate</span>
+        </div>
 
-        <Button
-          size="icon"
-          variant="ghost"
-          className="w-12 h-12 rounded-full bg-black/30 backdrop-blur-sm"
-          data-testid={`button-share-${ticket.id}`}
-        >
-          <Share2 className="w-6 h-6" />
-        </Button>
-        <span className="text-xs text-white/80">Share</span>
+        <div className="flex flex-col items-center">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm"
+            data-testid={`button-share-${ticket.id}`}
+          >
+            <Share2 className="w-5 h-5" />
+          </Button>
+          <span className="text-[10px] text-white/80 mt-0.5">Share</span>
+        </div>
       </div>
 
       {/* Bottom Info */}
