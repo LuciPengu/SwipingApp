@@ -33,6 +33,19 @@ async def get_current_user(authorization: Optional[str] = Header(None)):
     except Exception:
         return None
 
+def get_user_organization_id(user_id: str) -> Optional[str]:
+    """Get the organization_id for a user from their profile"""
+    if not user_id:
+        return None
+    try:
+        supabase = get_supabase()
+        result = supabase.table("profiles").select("organization_id").eq("user_id", user_id).execute()
+        if result.data and result.data[0].get("organization_id"):
+            return result.data[0]["organization_id"]
+    except Exception as e:
+        print(f"Get org_id error: {e}")
+    return None
+
 class ActivityCreate(BaseModel):
     type: str
     content: str
@@ -202,6 +215,7 @@ async def create_ticket(ticket: TicketCreate, user = Depends(get_current_user)):
     supabase = get_supabase()
     user_id = user.id if user else "anonymous"
     user_email = user.email if user else "Anonymous User"
+    org_id = get_user_organization_id(user_id) if user else None
     
     now = datetime.utcnow()
     sla_hours = {"critical": 2, "high": 4, "medium": 8, "low": 24}
@@ -221,6 +235,8 @@ async def create_ticket(ticket: TicketCreate, user = Depends(get_current_user)):
         "has_bounty": ticket.hasBounty,
         "bounty_amount": ticket.bountyAmount,
     }
+    if org_id:
+        new_ticket["organization_id"] = org_id
     
     result = supabase.table("tickets").insert(new_ticket).execute()
     if result.data:
@@ -228,14 +244,21 @@ async def create_ticket(ticket: TicketCreate, user = Depends(get_current_user)):
     raise HTTPException(status_code=500, detail="Failed to create ticket")
 
 @app.get("/mcp/tickets/feed")
-async def get_feed():
+async def get_feed(user = Depends(get_current_user)):
     supabase = get_supabase()
+    user_id = user.id if user else None
+    org_id = get_user_organization_id(user_id) if user_id else None
+    
     try:
-        result = supabase.table("tickets")\
+        query = supabase.table("tickets")\
             .select("*")\
             .eq("status", "open")\
-            .is_("assignee_id", "null")\
-            .execute()
+            .is_("assignee_id", "null")
+        
+        if org_id:
+            query = query.eq("organization_id", org_id)
+        
+        result = query.execute()
         
         tickets = [db_to_ticket(row) for row in result.data]
         priority_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
@@ -249,37 +272,51 @@ async def get_feed():
 async def get_queue(user = Depends(get_current_user)):
     supabase = get_supabase()
     user_id = user.id if user else "default"
+    org_id = get_user_organization_id(user_id) if user else None
     
-    result = supabase.table("tickets")\
+    query = supabase.table("tickets")\
         .select("*")\
         .eq("assignee_id", user_id)\
-        .in_("status", ["assigned", "in_progress"])\
-        .execute()
+        .in_("status", ["assigned", "in_progress"])
     
+    if org_id:
+        query = query.eq("organization_id", org_id)
+    
+    result = query.execute()
     return [db_to_ticket(row) for row in result.data]
 
 @app.get("/mcp/tickets/resolved")
 async def get_resolved(user = Depends(get_current_user)):
     supabase = get_supabase()
     user_id = user.id if user else "default"
+    org_id = get_user_organization_id(user_id) if user else None
     
-    result = supabase.table("tickets")\
+    query = supabase.table("tickets")\
         .select("*")\
         .eq("assignee_id", user_id)\
         .eq("status", "resolved")\
-        .order("resolved_at", desc=True)\
-        .execute()
+        .order("resolved_at", desc=True)
     
+    if org_id:
+        query = query.eq("organization_id", org_id)
+    
+    result = query.execute()
     return [db_to_ticket(row) for row in result.data]
 
 @app.get("/mcp/tickets/escalated")
-async def get_escalated():
+async def get_escalated(user = Depends(get_current_user)):
     supabase = get_supabase()
-    result = supabase.table("tickets")\
-        .select("*")\
-        .eq("status", "escalated")\
-        .execute()
+    user_id = user.id if user else None
+    org_id = get_user_organization_id(user_id) if user_id else None
     
+    query = supabase.table("tickets")\
+        .select("*")\
+        .eq("status", "escalated")
+    
+    if org_id:
+        query = query.eq("organization_id", org_id)
+    
+    result = query.execute()
     return [db_to_ticket(row) for row in result.data]
 
 @app.post("/mcp/tickets/{ticket_id}/assign")
@@ -303,6 +340,8 @@ async def assign_ticket(ticket_id: str, user = Depends(get_current_user)):
         .eq("id", ticket_id)\
         .execute()
     
+    org_id = get_user_organization_id(user_id) if user else None
+    
     stats_result = supabase.table("agent_stats").select("*").eq("agent_id", user_id).execute()
     if stats_result.data:
         current_stats = stats_result.data[0]
@@ -314,14 +353,17 @@ async def assign_ticket(ticket_id: str, user = Depends(get_current_user)):
             .eq("agent_id", user_id)\
             .execute()
     else:
-        supabase.table("agent_stats").insert({
+        new_stats = {
             "agent_id": user_id,
             "agent_name": user_name,
             "tickets_assigned": 1,
             "tickets_resolved": 0,
             "streak": 0,
             "coins": 0
-        }).execute()
+        }
+        if org_id:
+            new_stats["organization_id"] = org_id
+        supabase.table("agent_stats").insert(new_stats).execute()
     
     if update_result.data:
         return db_to_ticket(update_result.data[0])
@@ -355,6 +397,7 @@ async def resolve_ticket(ticket_id: str, user = Depends(get_current_user)):
         .execute()
     
     bounty_coins = ticket.get("bounty_amount", 0) if ticket.get("has_bounty") else 0
+    org_id = get_user_organization_id(user_id) if user else None
     
     stats_result = supabase.table("agent_stats").select("*").eq("agent_id", user_id).execute()
     if stats_result.data:
@@ -369,14 +412,17 @@ async def resolve_ticket(ticket_id: str, user = Depends(get_current_user)):
             .eq("agent_id", user_id)\
             .execute()
     else:
-        supabase.table("agent_stats").insert({
+        new_stats = {
             "agent_id": user_id,
             "agent_name": user_name,
             "tickets_assigned": 0,
             "tickets_resolved": 1,
             "streak": 1,
             "coins": 25 + bounty_coins
-        }).execute()
+        }
+        if org_id:
+            new_stats["organization_id"] = org_id
+        supabase.table("agent_stats").insert(new_stats).execute()
     
     if update_result.data:
         return db_to_ticket(update_result.data[0])
@@ -472,14 +518,20 @@ async def get_agent_stats(user = Depends(get_current_user)):
     }
 
 @app.get("/mcp/leaderboard")
-async def get_leaderboard():
+async def get_leaderboard(user = Depends(get_current_user)):
     supabase = get_supabase()
+    user_id = user.id if user else None
+    org_id = get_user_organization_id(user_id) if user_id else None
     
-    result = supabase.table("agent_stats")\
+    query = supabase.table("agent_stats")\
         .select("*")\
         .order("tickets_resolved", desc=True)\
-        .limit(20)\
-        .execute()
+        .limit(20)
+    
+    if org_id:
+        query = query.eq("organization_id", org_id)
+    
+    result = query.execute()
     
     leaderboard = []
     for i, row in enumerate(result.data):
@@ -497,20 +549,31 @@ async def get_leaderboard():
     return leaderboard
 
 @app.get("/mcp/feed/mixed")
-async def get_mixed_feed():
+async def get_mixed_feed(user = Depends(get_current_user)):
     supabase = get_supabase()
+    user_id = user.id if user else None
+    org_id = get_user_organization_id(user_id) if user_id else None
+    
     try:
-        tickets_result = supabase.table("tickets")\
+        tickets_query = supabase.table("tickets")\
             .select("*")\
             .eq("status", "open")\
-            .is_("assignee_id", "null")\
-            .execute()
+            .is_("assignee_id", "null")
         
-        posts_result = supabase.table("posts")\
+        if org_id:
+            tickets_query = tickets_query.eq("organization_id", org_id)
+        
+        tickets_result = tickets_query.execute()
+        
+        posts_query = supabase.table("posts")\
             .select("*")\
             .order("created_at", desc=True)\
-            .limit(50)\
-            .execute()
+            .limit(50)
+        
+        if org_id:
+            posts_query = posts_query.eq("organization_id", org_id)
+        
+        posts_result = posts_query.execute()
         
         tickets = [db_to_ticket(row) for row in tickets_result.data]
         for t in tickets:
@@ -534,21 +597,37 @@ class CreateMemberData(BaseModel):
     avatarUrl: Optional[str] = None
 
 @app.get("/mcp/profiles")
-async def get_all_profiles():
+async def get_all_profiles(user = Depends(get_current_user)):
     supabase = get_supabase()
+    user_id = user.id if user else None
+    org_id = get_user_organization_id(user_id) if user_id else None
+    
     try:
-        result = supabase.table("profiles")\
+        query = supabase.table("profiles")\
             .select("*")\
-            .order("display_name")\
-            .execute()
+            .order("display_name")
+        
+        if org_id:
+            query = query.eq("organization_id", org_id)
+        
+        result = query.execute()
         return [db_to_profile(row) for row in result.data]
     except Exception as e:
         print(f"Profiles error: {e}")
         return []
 
 @app.post("/mcp/profiles")
-async def create_member(data: CreateMemberData):
+async def create_member(data: CreateMemberData, user = Depends(get_current_user)):
     supabase = get_supabase()
+    current_user_id = user.id if user else None
+    org_id = get_user_organization_id(current_user_id) if current_user_id else None
+    
+    try:
+        profile = supabase.table("profiles").select("organization_name").eq("user_id", current_user_id).execute()
+        org_name = profile.data[0].get("organization_name") if profile.data else None
+    except:
+        org_name = None
+    
     try:
         import uuid
         new_profile = {
@@ -561,6 +640,9 @@ async def create_member(data: CreateMemberData):
             "created_at": datetime.utcnow().isoformat(),
             "updated_at": datetime.utcnow().isoformat(),
         }
+        if org_id:
+            new_profile["organization_id"] = org_id
+            new_profile["organization_name"] = org_name
         result = supabase.table("profiles").insert(new_profile).execute()
         if result.data:
             return db_to_profile(result.data[0])
@@ -638,12 +720,17 @@ async def update_my_profile(profile: ProfileUpdate, user = Depends(get_current_u
     raise HTTPException(status_code=400, detail="No updates provided")
 
 @app.get("/mcp/posts")
-async def get_posts(user_id: Optional[str] = None):
+async def get_posts(user_id: Optional[str] = None, user = Depends(get_current_user)):
     supabase = get_supabase()
+    current_user_id = user.id if user else None
+    org_id = get_user_organization_id(current_user_id) if current_user_id else None
+    
     try:
         query = supabase.table("posts").select("*")
         if user_id:
             query = query.eq("user_id", user_id)
+        if org_id:
+            query = query.eq("organization_id", org_id)
         result = query.order("created_at", desc=True).limit(50).execute()
         return [db_to_post(row) for row in result.data]
     except Exception as e:
@@ -655,6 +742,7 @@ async def create_post(post: PostCreate, user = Depends(get_current_user)):
     supabase = get_supabase()
     user_id = user.id if user else "anonymous"
     user_name = user.email if user else "Anonymous"
+    org_id = get_user_organization_id(user_id) if user else None
     
     new_post = {
         "user_id": user_id,
@@ -663,6 +751,8 @@ async def create_post(post: PostCreate, user = Depends(get_current_user)):
         "content": post.content,
         "image_url": post.imageUrl,
     }
+    if org_id:
+        new_post["organization_id"] = org_id
     
     result = supabase.table("posts").insert(new_post).execute()
     if result.data:

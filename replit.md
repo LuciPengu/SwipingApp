@@ -94,7 +94,77 @@ Optional for backend:
 ## Development
 The app runs on port 5000. Start with `npm run dev`. The FastAPI MCP server is automatically spawned on port 8000.
 
+## Multi-Tenancy Database Setup
+To enable multi-tenancy, run this SQL in your Supabase SQL Editor:
+
+```sql
+-- Organizations table
+CREATE TABLE organizations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  slug TEXT UNIQUE NOT NULL,
+  logo_url TEXT,
+  domain TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Add organization columns to profiles
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id);
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS organization_name TEXT;
+
+-- SLA Policies table
+CREATE TABLE sla_policies (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id UUID NOT NULL REFERENCES organizations(id),
+  name TEXT NOT NULL,
+  priority TEXT NOT NULL,
+  response_time_minutes INTEGER NOT NULL,
+  resolution_time_minutes INTEGER NOT NULL,
+  is_default BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Ticket Categories table  
+CREATE TABLE ticket_categories (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id UUID NOT NULL REFERENCES organizations(id),
+  name TEXT NOT NULL,
+  description TEXT,
+  icon TEXT,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Add organization_id to tickets
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id);
+
+-- Add organization_id to posts
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id);
+
+-- Enable RLS for organizations
+ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sla_policies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ticket_categories ENABLE ROW LEVEL SECURITY;
+
+-- RLS policies (adjust as needed)
+CREATE POLICY "Users can view their organization" ON organizations FOR SELECT USING (true);
+CREATE POLICY "Authenticated users can insert organizations" ON organizations FOR INSERT WITH CHECK (true);
+CREATE POLICY "Users can update their organization" ON organizations FOR UPDATE USING (true);
+
+CREATE POLICY "Users can view org SLA policies" ON sla_policies FOR SELECT USING (true);
+CREATE POLICY "Users can insert SLA policies" ON sla_policies FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Users can view org categories" ON ticket_categories FOR SELECT USING (true);
+CREATE POLICY "Users can insert categories" ON ticket_categories FOR INSERT WITH CHECK (true);
+```
+
 ## Recent Changes
+- Added multi-tenancy support with organizations
+- Organization setup flow on first login (create or join)
+- ITSM configuration: SLA policies and ticket categories
+- Settings page showing org info, SLA policies, categories
+- Sidebar shows organization name
 - Added Supabase authentication with login/signup pages
 - Replaced Express API with FastAPI MCP server
 - Express proxy forwards /mcp/* requests to FastAPI
