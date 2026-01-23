@@ -89,7 +89,7 @@ export function CreateTicketDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button data-testid="button-create-ticket">
+        <Button className="w-full" data-testid="button-create-ticket">
           <Plus className="w-4 h-4 mr-2" />
           New Ticket
         </Button>

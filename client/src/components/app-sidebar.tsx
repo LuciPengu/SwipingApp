@@ -15,6 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
+import { CreateTicketDialog } from "@/components/create-ticket-dialog";
 import { 
   Home, 
   PlayCircle, 
@@ -25,8 +26,7 @@ import {
   Settings,
   Flame,
   Bell,
-  LogOut,
-  PlusCircle
+  LogOut
 } from "lucide-react";
 
 const mainMenuItems = [
@@ -71,14 +71,7 @@ export function AppSidebar({ streak = 0, coins = 0 }: AppSidebarProps) {
       <SidebarContent>
         {/* Quick Actions */}
         <div className="p-3">
-          <Button 
-            className="w-full justify-start gap-2" 
-            variant="default"
-            data-testid="button-new-ticket"
-          >
-            <PlusCircle className="w-4 h-4" />
-            New Ticket
-          </Button>
+          <CreateTicketDialog />
         </div>
 
         {/* Main Navigation */}

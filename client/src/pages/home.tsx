@@ -1,7 +1,6 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { TicketFeed } from "@/components/ticket-feed";
 import { AgentStats } from "@/components/agent-stats";
-import { CreateTicketDialog } from "@/components/create-ticket-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import { mcpClient } from "@/lib/mcp-client";
@@ -93,12 +92,7 @@ export default function Home() {
 
   return (
     <div className="flex h-full" data-testid="page-home">
-      <div className="flex-1 h-full overflow-hidden flex flex-col">
-        <div className="flex items-center justify-between p-4 border-b">
-          <h1 className="text-xl font-semibold">Ticket Feed</h1>
-          <CreateTicketDialog />
-        </div>
-        <div className="flex-1 overflow-hidden">
+      <div className="flex-1 h-full overflow-hidden">
         <TicketFeed
           tickets={tickets || []}
           isLoading={ticketsLoading}
@@ -107,7 +101,6 @@ export default function Home() {
           onEscalate={handleEscalate}
           onRefresh={handleRefresh}
         />
-        </div>
       </div>
 
       <div className="hidden lg:block w-80 border-l border-border p-4 overflow-y-auto">
