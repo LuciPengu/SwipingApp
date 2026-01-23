@@ -7,7 +7,8 @@ import {
   Heart, 
   MessageCircle, 
   Share2, 
-  ArrowUp, 
+  ArrowUp,
+  ChevronUp,
   CheckCircle2, 
   AlertTriangle,
   Clock,
@@ -78,7 +79,11 @@ export function TicketCard({
   const x = useMotionValue(0);
   const y = useMotionValue(0);
   const rotate = useTransform(x, [-200, 200], [-15, 15]);
-  const opacity = useTransform(x, [-200, -100, 0, 100, 200], [0.5, 0.8, 1, 0.8, 0.5]);
+  const cardOpacity = useTransform(x, [-200, -100, 0, 100, 200], [0.5, 0.8, 1, 0.8, 0.5]);
+  
+  const resolveOpacity = useTransform(x, [0, 50, 100], [0, 0.5, 1]);
+  const escalateOpacity = useTransform(x, [0, -50, -100], [0, 0.5, 1]);
+  const skipOpacity = useTransform(y, [0, -50, -100], [0, 0.5, 1]);
 
   const CategoryIcon = categoryIcons[ticket.category as keyof typeof categoryIcons] || HelpCircle;
   const priority = ticket.priority as keyof typeof priorityColors;
@@ -144,7 +149,7 @@ export function TicketCard({
         swipeDirection === "left" ? "animate-swipe-left" :
         swipeDirection === "up" ? "animate-swipe-up" : ""
       }`}
-      style={{ x, y, rotate, opacity }}
+      style={{ x, y, rotate, opacity: cardOpacity }}
       drag={isActive}
       dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
       dragElastic={0.7}
@@ -169,6 +174,39 @@ export function TicketCard({
 
       {/* Gradient Overlay */}
       <div className="absolute inset-0 feed-gradient" />
+
+      {/* Swipe Action Indicators */}
+      <motion.div 
+        className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none"
+        style={{ opacity: resolveOpacity }}
+      >
+        <div className="bg-green-500/90 backdrop-blur-sm px-6 py-3 rounded-full flex items-center gap-2 shadow-lg">
+          <CheckCircle2 className="w-6 h-6 text-white" />
+          <span className="text-white font-bold text-lg">RESOLVE</span>
+        </div>
+      </motion.div>
+
+      <motion.div 
+        className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none"
+        style={{ opacity: escalateOpacity }}
+      >
+        <div className="bg-orange-500/90 backdrop-blur-sm px-6 py-3 rounded-full flex items-center gap-2 shadow-lg">
+          <AlertTriangle className="w-6 h-6 text-white" />
+          <span className="text-white font-bold text-lg">ESCALATE</span>
+        </div>
+      </motion.div>
+
+      {canSkip && (
+        <motion.div 
+          className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none"
+          style={{ opacity: skipOpacity }}
+        >
+          <div className="bg-blue-500/90 backdrop-blur-sm px-6 py-3 rounded-full flex items-center gap-2 shadow-lg">
+            <ChevronUp className="w-6 h-6 text-white" />
+            <span className="text-white font-bold text-lg">SKIP</span>
+          </div>
+        </motion.div>
+      )}
 
       {/* Progress Indicator */}
       {totalCount > 1 && (
