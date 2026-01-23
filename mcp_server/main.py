@@ -61,6 +61,30 @@ class TicketCreate(BaseModel):
     hasBounty: bool = False
     bountyAmount: int = 0
 
+class OrganizationCreate(BaseModel):
+    name: str
+    slug: Optional[str] = None
+    domain: Optional[str] = None
+    logoUrl: Optional[str] = None
+
+class OrganizationUpdate(BaseModel):
+    name: Optional[str] = None
+    logoUrl: Optional[str] = None
+    domain: Optional[str] = None
+
+class SlaPolicyCreate(BaseModel):
+    name: str
+    priority: str
+    responseTimeMinutes: int
+    resolutionTimeMinutes: int
+    isDefault: bool = False
+
+class CategoryCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    icon: Optional[str] = None
+    isActive: bool = True
+
 def db_to_ticket(row: dict) -> dict:
     return {
         "id": str(row["id"]),
@@ -108,8 +132,42 @@ def db_to_profile(row: dict) -> dict:
         "bio": row.get("bio"),
         "department": row.get("department"),
         "role": row.get("role", "Agent"),
+        "organizationId": row.get("organization_id"),
+        "organizationName": row.get("organization_name"),
         "createdAt": row["created_at"],
         "updatedAt": row["updated_at"]
+    }
+
+def db_to_organization(row: dict) -> dict:
+    return {
+        "id": str(row["id"]),
+        "name": row["name"],
+        "slug": row["slug"],
+        "logoUrl": row.get("logo_url"),
+        "domain": row.get("domain"),
+        "createdAt": row["created_at"],
+        "updatedAt": row["updated_at"]
+    }
+
+def db_to_sla_policy(row: dict) -> dict:
+    return {
+        "id": str(row["id"]),
+        "organizationId": row["organization_id"],
+        "name": row["name"],
+        "priority": row["priority"],
+        "responseTimeMinutes": row["response_time_minutes"],
+        "resolutionTimeMinutes": row["resolution_time_minutes"],
+        "isDefault": row.get("is_default", False)
+    }
+
+def db_to_category(row: dict) -> dict:
+    return {
+        "id": str(row["id"]),
+        "organizationId": row["organization_id"],
+        "name": row["name"],
+        "description": row.get("description"),
+        "icon": row.get("icon"),
+        "isActive": row.get("is_active", True)
     }
 
 def db_to_post(row: dict) -> dict:
@@ -682,6 +740,257 @@ async def add_post_comment(post_id: str, comment: CommentCreate, user = Depends(
     if result.data:
         return db_to_comment(result.data[0])
     raise HTTPException(status_code=500, detail="Failed to add comment")
+
+# Organization endpoints for multi-tenancy
+@app.get("/mcp/organizations/my")
+async def get_my_organization(user = Depends(get_current_user)):
+    supabase = get_supabase()
+    user_id = user.id if user else None
+    if not user_id:
+        return None
+    
+    try:
+        profile = supabase.table("profiles").select("organization_id").eq("user_id", user_id).execute()
+        if not profile.data or not profile.data[0].get("organization_id"):
+            return None
+        
+        org_id = profile.data[0]["organization_id"]
+        org = supabase.table("organizations").select("*").eq("id", org_id).execute()
+        if org.data:
+            return db_to_organization(org.data[0])
+    except Exception as e:
+        print(f"Get org error: {e}")
+    return None
+
+@app.post("/mcp/organizations")
+async def create_organization(data: OrganizationCreate, user = Depends(get_current_user)):
+    supabase = get_supabase()
+    user_id = user.id if user else None
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    try:
+        import uuid
+        import re
+        slug = data.slug or re.sub(r'[^a-z0-9]+', '-', data.name.lower()).strip('-')
+        
+        new_org = {
+            "id": str(uuid.uuid4()),
+            "name": data.name,
+            "slug": slug,
+            "logo_url": data.logoUrl,
+            "domain": data.domain,
+            "created_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.utcnow().isoformat(),
+        }
+        result = supabase.table("organizations").insert(new_org).execute()
+        
+        if result.data:
+            org_id = result.data[0]["id"]
+            supabase.table("profiles").update({
+                "organization_id": org_id,
+                "organization_name": data.name,
+                "role": "Admin",
+                "updated_at": datetime.utcnow().isoformat()
+            }).eq("user_id", user_id).execute()
+            
+            # Create default ITSM configuration
+            default_slas = [
+                {"organization_id": org_id, "name": "Critical", "priority": "critical", "response_time_minutes": 15, "resolution_time_minutes": 120, "is_default": True},
+                {"organization_id": org_id, "name": "High", "priority": "high", "response_time_minutes": 60, "resolution_time_minutes": 480, "is_default": True},
+                {"organization_id": org_id, "name": "Medium", "priority": "medium", "response_time_minutes": 240, "resolution_time_minutes": 1440, "is_default": True},
+                {"organization_id": org_id, "name": "Low", "priority": "low", "response_time_minutes": 480, "resolution_time_minutes": 2880, "is_default": True},
+            ]
+            supabase.table("sla_policies").insert(default_slas).execute()
+            
+            default_categories = [
+                {"organization_id": org_id, "name": "Hardware", "icon": "cpu", "is_active": True},
+                {"organization_id": org_id, "name": "Software", "icon": "monitor", "is_active": True},
+                {"organization_id": org_id, "name": "Network", "icon": "wifi", "is_active": True},
+                {"organization_id": org_id, "name": "Access", "icon": "key", "is_active": True},
+                {"organization_id": org_id, "name": "Other", "icon": "help-circle", "is_active": True},
+            ]
+            supabase.table("ticket_categories").insert(default_categories).execute()
+            
+            return db_to_organization(result.data[0])
+        raise HTTPException(status_code=400, detail="Failed to create organization")
+    except Exception as e:
+        print(f"Create org error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.put("/mcp/organizations/my")
+async def update_organization(data: OrganizationUpdate, user = Depends(get_current_user)):
+    supabase = get_supabase()
+    user_id = user.id if user else None
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    try:
+        profile = supabase.table("profiles").select("organization_id, role").eq("user_id", user_id).execute()
+        if not profile.data or not profile.data[0].get("organization_id"):
+            raise HTTPException(status_code=404, detail="No organization found")
+        
+        if profile.data[0].get("role") not in ["Admin", "Manager"]:
+            raise HTTPException(status_code=403, detail="Admin or Manager role required")
+        
+        org_id = profile.data[0]["organization_id"]
+        update_data = {"updated_at": datetime.utcnow().isoformat()}
+        if data.name:
+            update_data["name"] = data.name
+        if data.logoUrl is not None:
+            update_data["logo_url"] = data.logoUrl
+        if data.domain is not None:
+            update_data["domain"] = data.domain
+        
+        result = supabase.table("organizations").update(update_data).eq("id", org_id).execute()
+        if result.data:
+            if data.name:
+                supabase.table("profiles").update({
+                    "organization_name": data.name,
+                    "updated_at": datetime.utcnow().isoformat()
+                }).eq("organization_id", org_id).execute()
+            return db_to_organization(result.data[0])
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Update org error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/mcp/organizations/join")
+async def join_organization(slug: str, user = Depends(get_current_user)):
+    supabase = get_supabase()
+    user_id = user.id if user else None
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    try:
+        org = supabase.table("organizations").select("*").eq("slug", slug).execute()
+        if not org.data:
+            raise HTTPException(status_code=404, detail="Organization not found")
+        
+        org_data = org.data[0]
+        supabase.table("profiles").update({
+            "organization_id": org_data["id"],
+            "organization_name": org_data["name"],
+            "updated_at": datetime.utcnow().isoformat()
+        }).eq("user_id", user_id).execute()
+        
+        return db_to_organization(org_data)
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Join org error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+# ITSM Configuration endpoints
+@app.get("/mcp/config/sla-policies")
+async def get_sla_policies(user = Depends(get_current_user)):
+    supabase = get_supabase()
+    user_id = user.id if user else None
+    if not user_id:
+        return []
+    
+    try:
+        profile = supabase.table("profiles").select("organization_id").eq("user_id", user_id).execute()
+        if not profile.data or not profile.data[0].get("organization_id"):
+            return []
+        
+        org_id = profile.data[0]["organization_id"]
+        result = supabase.table("sla_policies").select("*").eq("organization_id", org_id).execute()
+        return [db_to_sla_policy(row) for row in result.data]
+    except Exception as e:
+        print(f"Get SLA policies error: {e}")
+        return []
+
+@app.post("/mcp/config/sla-policies")
+async def create_sla_policy(data: SlaPolicyCreate, user = Depends(get_current_user)):
+    supabase = get_supabase()
+    user_id = user.id if user else None
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    try:
+        profile = supabase.table("profiles").select("organization_id, role").eq("user_id", user_id).execute()
+        if not profile.data or not profile.data[0].get("organization_id"):
+            raise HTTPException(status_code=404, detail="No organization found")
+        
+        if profile.data[0].get("role") not in ["Admin", "Manager"]:
+            raise HTTPException(status_code=403, detail="Admin or Manager role required")
+        
+        org_id = profile.data[0]["organization_id"]
+        import uuid
+        new_policy = {
+            "id": str(uuid.uuid4()),
+            "organization_id": org_id,
+            "name": data.name,
+            "priority": data.priority,
+            "response_time_minutes": data.responseTimeMinutes,
+            "resolution_time_minutes": data.resolutionTimeMinutes,
+            "is_default": data.isDefault,
+        }
+        result = supabase.table("sla_policies").insert(new_policy).execute()
+        if result.data:
+            return db_to_sla_policy(result.data[0])
+        raise HTTPException(status_code=400, detail="Failed to create SLA policy")
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Create SLA policy error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/mcp/config/categories")
+async def get_categories(user = Depends(get_current_user)):
+    supabase = get_supabase()
+    user_id = user.id if user else None
+    if not user_id:
+        return []
+    
+    try:
+        profile = supabase.table("profiles").select("organization_id").eq("user_id", user_id).execute()
+        if not profile.data or not profile.data[0].get("organization_id"):
+            return []
+        
+        org_id = profile.data[0]["organization_id"]
+        result = supabase.table("ticket_categories").select("*").eq("organization_id", org_id).execute()
+        return [db_to_category(row) for row in result.data]
+    except Exception as e:
+        print(f"Get categories error: {e}")
+        return []
+
+@app.post("/mcp/config/categories")
+async def create_category(data: CategoryCreate, user = Depends(get_current_user)):
+    supabase = get_supabase()
+    user_id = user.id if user else None
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    try:
+        profile = supabase.table("profiles").select("organization_id, role").eq("user_id", user_id).execute()
+        if not profile.data or not profile.data[0].get("organization_id"):
+            raise HTTPException(status_code=404, detail="No organization found")
+        
+        if profile.data[0].get("role") not in ["Admin", "Manager"]:
+            raise HTTPException(status_code=403, detail="Admin or Manager role required")
+        
+        org_id = profile.data[0]["organization_id"]
+        import uuid
+        new_category = {
+            "id": str(uuid.uuid4()),
+            "organization_id": org_id,
+            "name": data.name,
+            "description": data.description,
+            "icon": data.icon,
+            "is_active": data.isActive,
+        }
+        result = supabase.table("ticket_categories").insert(new_category).execute()
+        if result.data:
+            return db_to_category(result.data[0])
+        raise HTTPException(status_code=400, detail="Failed to create category")
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Create category error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/mcp/health")
 async def health_check():

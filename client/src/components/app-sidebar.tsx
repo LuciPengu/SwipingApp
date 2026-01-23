@@ -29,7 +29,8 @@ import {
   LogOut,
   Users,
   Megaphone,
-  UserCircle
+  UserCircle,
+  Settings
 } from "lucide-react";
 
 const mainMenuItems = [
@@ -43,14 +44,16 @@ const discoverItems = [
   { title: "Leaderboard", url: "/leaderboard", icon: Trophy },
   { title: "Team", url: "/team", icon: Users },
   { title: "Knowledge Base", url: "/knowledge", icon: PlayCircle },
+  { title: "Settings", url: "/settings", icon: Settings },
 ];
 
 interface AppSidebarProps {
   streak?: number;
   coins?: number;
+  organizationName?: string;
 }
 
-export function AppSidebar({ streak = 0, coins = 0 }: AppSidebarProps) {
+export function AppSidebar({ streak = 0, coins = 0, organizationName }: AppSidebarProps) {
   const [location] = useLocation();
   const { user, signOut } = useAuth();
 
@@ -67,7 +70,9 @@ export function AppSidebar({ streak = 0, coins = 0 }: AppSidebarProps) {
           </div>
           <div>
             <h1 className="font-bold text-lg" data-testid="text-app-name">StreamOps</h1>
-            <p className="text-xs text-sidebar-foreground/60">The Feed is the Work</p>
+            <p className="text-xs text-sidebar-foreground/60 truncate" data-testid="text-org-name">
+              {organizationName || "The Feed is the Work"}
+            </p>
           </div>
         </div>
       </SidebarHeader>

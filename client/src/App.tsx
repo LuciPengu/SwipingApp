@@ -19,8 +19,10 @@ import Knowledge from "@/pages/knowledge";
 import Team from "@/pages/team";
 import ProfilePage from "@/pages/profile";
 import MyProfilePage from "@/pages/my-profile";
+import Settings from "@/pages/settings";
 import Login from "@/pages/login";
-import type { AgentStats } from "@shared/schema";
+import { OrganizationSetup } from "@/components/organization-setup";
+import type { AgentStats, Organization } from "@shared/schema";
 import { Loader2 } from "lucide-react";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
@@ -72,6 +74,9 @@ function Router() {
       <Route path="/my-profile">
         <ProtectedRoute component={MyProfilePage} />
       </Route>
+      <Route path="/settings">
+        <ProtectedRoute component={Settings} />
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );
@@ -84,6 +89,12 @@ function AppContent() {
   const { data: stats } = useQuery<AgentStats>({
     queryKey: ['/mcp/agent/stats'],
     queryFn: () => mcpClient.getAgentStats() as Promise<AgentStats>,
+    enabled: !!user,
+  });
+
+  const { data: organization, isLoading: orgLoading, refetch: refetchOrg } = useQuery<Organization | null>({
+    queryKey: ['/mcp/organizations/my'],
+    queryFn: () => mcpClient.getMyOrganization() as Promise<Organization | null>,
     enabled: !!user,
   });
 
@@ -104,10 +115,22 @@ function AppContent() {
     return <Router />;
   }
 
+  if (orgLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!organization) {
+    return <OrganizationSetup onComplete={() => refetchOrg()} />;
+  }
+
   return (
     <SidebarProvider style={sidebarStyle as React.CSSProperties}>
       <div className="flex h-screen w-full">
-        <AppSidebar streak={stats?.streak || 0} coins={stats?.coins || 0} />
+        <AppSidebar streak={stats?.streak || 0} coins={stats?.coins || 0} organizationName={organization?.name} />
         <div className="flex flex-col flex-1 min-w-0">
           <header className="flex items-center justify-between p-3 border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-50">
             <SidebarTrigger data-testid="button-sidebar-toggle" />

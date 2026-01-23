@@ -119,6 +119,46 @@ export interface LeaderboardUser extends User {
   rank: number;
 }
 
+// Organization type for multi-tenancy
+export interface Organization {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl?: string | null;
+  domain?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ITSM Configuration types
+export interface SlaPolicy {
+  id: string;
+  organizationId: string;
+  name: string;
+  priority: string;
+  responseTimeMinutes: number;
+  resolutionTimeMinutes: number;
+  isDefault: boolean;
+}
+
+export interface TicketCategory {
+  id: string;
+  organizationId: string;
+  name: string;
+  description?: string | null;
+  icon?: string | null;
+  isActive: boolean;
+}
+
+export interface PriorityLevel {
+  id: string;
+  organizationId: string;
+  name: string;
+  level: number;
+  color: string;
+  slaMultiplier: number;
+}
+
 // Profile type
 export interface Profile {
   id: string;
@@ -129,6 +169,8 @@ export interface Profile {
   bio?: string | null;
   department?: string | null;
   role: string;
+  organizationId?: string | null;
+  organizationName?: string | null;
   createdAt: string;
   updatedAt: string;
 }

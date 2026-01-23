@@ -59,6 +59,28 @@ export interface CreateMemberData {
   avatarUrl?: string;
 }
 
+export interface CreateOrganizationData {
+  name: string;
+  slug?: string;
+  domain?: string;
+  logoUrl?: string;
+}
+
+export interface CreateSlaPolicyData {
+  name: string;
+  priority: string;
+  responseTimeMinutes: number;
+  resolutionTimeMinutes: number;
+  isDefault?: boolean;
+}
+
+export interface CreateCategoryData {
+  name: string;
+  description?: string;
+  icon?: string;
+  isActive?: boolean;
+}
+
 export const mcpClient = {
   getFeed: () => mcpRequest('GET', '/tickets/feed'),
   getMixedFeed: () => mcpRequest('GET', '/feed/mixed'),
@@ -81,6 +103,17 @@ export const mcpClient = {
   updateMyProfile: (data: { displayName?: string; bio?: string; department?: string; avatarUrl?: string }) => 
     mcpRequest('PUT', '/profiles/me', data),
   createMember: (data: CreateMemberData) => mcpRequest('POST', '/profiles', data),
+  
+  getMyOrganization: () => mcpRequest('GET', '/organizations/my'),
+  createOrganization: (data: CreateOrganizationData) => mcpRequest('POST', '/organizations', data),
+  updateOrganization: (data: Partial<CreateOrganizationData>) => mcpRequest('PUT', '/organizations/my', data),
+  joinOrganization: (slug: string) => mcpRequest('POST', `/organizations/join?slug=${slug}`),
+  
+  getSlaPolicies: () => mcpRequest('GET', '/config/sla-policies'),
+  createSlaPolicy: (data: CreateSlaPolicyData) => mcpRequest('POST', '/config/sla-policies', data),
+  
+  getCategories: () => mcpRequest('GET', '/config/categories'),
+  createCategory: (data: CreateCategoryData) => mcpRequest('POST', '/config/categories', data),
   
   getPosts: (userId?: string) => mcpRequest('GET', userId ? `/posts?user_id=${userId}` : '/posts'),
   createPost: (data: CreatePostData) => mcpRequest('POST', '/posts', data),
