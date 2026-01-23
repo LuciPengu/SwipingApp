@@ -65,16 +65,73 @@ def setup_tables():
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 
+    -- Create profiles table
+    CREATE TABLE IF NOT EXISTS profiles (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id TEXT NOT NULL UNIQUE,
+        email TEXT NOT NULL,
+        display_name TEXT NOT NULL,
+        avatar_url TEXT,
+        bio TEXT,
+        department TEXT,
+        role TEXT DEFAULT 'Agent',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    -- Create posts table (social feed posts)
+    CREATE TABLE IF NOT EXISTS posts (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id TEXT NOT NULL,
+        user_name TEXT NOT NULL,
+        user_avatar TEXT,
+        content TEXT NOT NULL,
+        image_url TEXT,
+        likes_count INTEGER DEFAULT 0,
+        comments_count INTEGER DEFAULT 0,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    -- Create post_likes table
+    CREATE TABLE IF NOT EXISTS post_likes (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+        user_id TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE(post_id, user_id)
+    );
+
+    -- Create post_comments table
+    CREATE TABLE IF NOT EXISTS post_comments (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+        user_id TEXT NOT NULL,
+        user_name TEXT NOT NULL,
+        user_avatar TEXT,
+        content TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
     -- Create indexes
     CREATE INDEX IF NOT EXISTS idx_tickets_status ON tickets(status);
     CREATE INDEX IF NOT EXISTS idx_tickets_assignee ON tickets(assignee_id);
     CREATE INDEX IF NOT EXISTS idx_activities_ticket ON activities(ticket_id);
     CREATE INDEX IF NOT EXISTS idx_agent_stats_agent ON agent_stats(agent_id);
+    CREATE INDEX IF NOT EXISTS idx_profiles_user ON profiles(user_id);
+    CREATE INDEX IF NOT EXISTS idx_posts_user ON posts(user_id);
+    CREATE INDEX IF NOT EXISTS idx_posts_created ON posts(created_at);
+    CREATE INDEX IF NOT EXISTS idx_post_likes_post ON post_likes(post_id);
+    CREATE INDEX IF NOT EXISTS idx_post_comments_post ON post_comments(post_id);
 
     -- Enable RLS (Row Level Security) but allow all operations for now
     ALTER TABLE tickets ENABLE ROW LEVEL SECURITY;
     ALTER TABLE agent_stats ENABLE ROW LEVEL SECURITY;
     ALTER TABLE activities ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE post_likes ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE post_comments ENABLE ROW LEVEL SECURITY;
 
     -- Create policies for public access (adjust as needed for security)
     DROP POLICY IF EXISTS "Allow all on tickets" ON tickets;
@@ -85,6 +142,18 @@ def setup_tables():
     
     DROP POLICY IF EXISTS "Allow all on activities" ON activities;
     CREATE POLICY "Allow all on activities" ON activities FOR ALL USING (true) WITH CHECK (true);
+
+    DROP POLICY IF EXISTS "Allow all on profiles" ON profiles;
+    CREATE POLICY "Allow all on profiles" ON profiles FOR ALL USING (true) WITH CHECK (true);
+
+    DROP POLICY IF EXISTS "Allow all on posts" ON posts;
+    CREATE POLICY "Allow all on posts" ON posts FOR ALL USING (true) WITH CHECK (true);
+
+    DROP POLICY IF EXISTS "Allow all on post_likes" ON post_likes;
+    CREATE POLICY "Allow all on post_likes" ON post_likes FOR ALL USING (true) WITH CHECK (true);
+
+    DROP POLICY IF EXISTS "Allow all on post_comments" ON post_comments;
+    CREATE POLICY "Allow all on post_comments" ON post_comments FOR ALL USING (true) WITH CHECK (true);
     """
     
     try:

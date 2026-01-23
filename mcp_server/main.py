@@ -37,6 +37,19 @@ class ActivityCreate(BaseModel):
     type: str
     content: str
 
+class PostCreate(BaseModel):
+    content: str
+    imageUrl: Optional[str] = None
+
+class ProfileUpdate(BaseModel):
+    displayName: Optional[str] = None
+    bio: Optional[str] = None
+    department: Optional[str] = None
+    avatarUrl: Optional[str] = None
+
+class CommentCreate(BaseModel):
+    content: str
+
 class TicketCreate(BaseModel):
     title: str
     description: str
@@ -80,6 +93,46 @@ def db_to_activity(row: dict) -> dict:
         "userName": row["user_name"],
         "userAvatar": row.get("user_avatar"),
         "type": row["type"],
+        "content": row["content"],
+        "createdAt": row["created_at"]
+    }
+
+def db_to_profile(row: dict) -> dict:
+    return {
+        "id": str(row["id"]),
+        "userId": row["user_id"],
+        "email": row["email"],
+        "displayName": row["display_name"],
+        "avatarUrl": row.get("avatar_url"),
+        "bio": row.get("bio"),
+        "department": row.get("department"),
+        "role": row.get("role", "Agent"),
+        "createdAt": row["created_at"],
+        "updatedAt": row["updated_at"]
+    }
+
+def db_to_post(row: dict) -> dict:
+    return {
+        "id": str(row["id"]),
+        "userId": row["user_id"],
+        "userName": row["user_name"],
+        "userAvatar": row.get("user_avatar"),
+        "content": row["content"],
+        "imageUrl": row.get("image_url"),
+        "likesCount": row.get("likes_count", 0),
+        "commentsCount": row.get("comments_count", 0),
+        "createdAt": row["created_at"],
+        "updatedAt": row["updated_at"],
+        "type": "post"
+    }
+
+def db_to_comment(row: dict) -> dict:
+    return {
+        "id": str(row["id"]),
+        "postId": str(row["post_id"]),
+        "userId": row["user_id"],
+        "userName": row["user_name"],
+        "userAvatar": row.get("user_avatar"),
         "content": row["content"],
         "createdAt": row["created_at"]
     }
@@ -382,6 +435,213 @@ async def get_leaderboard():
         })
     
     return leaderboard
+
+@app.get("/mcp/feed/mixed")
+async def get_mixed_feed():
+    supabase = get_supabase()
+    try:
+        tickets_result = supabase.table("tickets")\
+            .select("*")\
+            .eq("status", "open")\
+            .is_("assignee_id", "null")\
+            .execute()
+        
+        posts_result = supabase.table("posts")\
+            .select("*")\
+            .order("created_at", desc=True)\
+            .limit(50)\
+            .execute()
+        
+        tickets = [db_to_ticket(row) for row in tickets_result.data]
+        for t in tickets:
+            t["type"] = "ticket"
+        
+        posts = [db_to_post(row) for row in posts_result.data]
+        
+        mixed = tickets + posts
+        mixed.sort(key=lambda x: x.get("createdAt", ""), reverse=True)
+        
+        return mixed
+    except Exception as e:
+        print(f"Mixed feed error: {e}")
+        return []
+
+@app.get("/mcp/profiles")
+async def get_all_profiles():
+    supabase = get_supabase()
+    result = supabase.table("profiles")\
+        .select("*")\
+        .order("display_name")\
+        .execute()
+    
+    return [db_to_profile(row) for row in result.data]
+
+@app.get("/mcp/profiles/{user_id}")
+async def get_profile(user_id: str):
+    supabase = get_supabase()
+    result = supabase.table("profiles").select("*").eq("user_id", user_id).execute()
+    
+    if result.data:
+        return db_to_profile(result.data[0])
+    raise HTTPException(status_code=404, detail="Profile not found")
+
+@app.get("/mcp/profiles/me")
+async def get_my_profile(user = Depends(get_current_user)):
+    supabase = get_supabase()
+    user_id = user.id if user else "default"
+    
+    result = supabase.table("profiles").select("*").eq("user_id", user_id).execute()
+    
+    if result.data:
+        return db_to_profile(result.data[0])
+    
+    if user:
+        new_profile = {
+            "user_id": user_id,
+            "email": user.email,
+            "display_name": user.email.split("@")[0] if user.email else "User",
+        }
+        insert_result = supabase.table("profiles").insert(new_profile).execute()
+        if insert_result.data:
+            return db_to_profile(insert_result.data[0])
+    
+    return {
+        "userId": user_id,
+        "email": "",
+        "displayName": "Guest",
+        "avatarUrl": None,
+        "bio": None,
+        "department": None,
+        "role": "Agent"
+    }
+
+@app.put("/mcp/profiles/me")
+async def update_my_profile(profile: ProfileUpdate, user = Depends(get_current_user)):
+    supabase = get_supabase()
+    user_id = user.id if user else "default"
+    
+    update_data = {}
+    if profile.displayName:
+        update_data["display_name"] = profile.displayName
+    if profile.bio is not None:
+        update_data["bio"] = profile.bio
+    if profile.department is not None:
+        update_data["department"] = profile.department
+    if profile.avatarUrl is not None:
+        update_data["avatar_url"] = profile.avatarUrl
+    
+    if update_data:
+        update_data["updated_at"] = datetime.utcnow().isoformat()
+        result = supabase.table("profiles")\
+            .update(update_data)\
+            .eq("user_id", user_id)\
+            .execute()
+        
+        if result.data:
+            return db_to_profile(result.data[0])
+    
+    raise HTTPException(status_code=400, detail="No updates provided")
+
+@app.get("/mcp/posts")
+async def get_posts():
+    supabase = get_supabase()
+    result = supabase.table("posts")\
+        .select("*")\
+        .order("created_at", desc=True)\
+        .limit(50)\
+        .execute()
+    
+    return [db_to_post(row) for row in result.data]
+
+@app.post("/mcp/posts")
+async def create_post(post: PostCreate, user = Depends(get_current_user)):
+    supabase = get_supabase()
+    user_id = user.id if user else "anonymous"
+    user_name = user.email if user else "Anonymous"
+    
+    new_post = {
+        "user_id": user_id,
+        "user_name": user_name,
+        "content": post.content,
+        "image_url": post.imageUrl,
+    }
+    
+    result = supabase.table("posts").insert(new_post).execute()
+    if result.data:
+        return db_to_post(result.data[0])
+    raise HTTPException(status_code=500, detail="Failed to create post")
+
+@app.post("/mcp/posts/{post_id}/like")
+async def like_post(post_id: str, user = Depends(get_current_user)):
+    supabase = get_supabase()
+    user_id = user.id if user else "default"
+    
+    existing = supabase.table("post_likes")\
+        .select("*")\
+        .eq("post_id", post_id)\
+        .eq("user_id", user_id)\
+        .execute()
+    
+    if existing.data:
+        supabase.table("post_likes")\
+            .delete()\
+            .eq("post_id", post_id)\
+            .eq("user_id", user_id)\
+            .execute()
+        
+        post = supabase.table("posts").select("likes_count").eq("id", post_id).execute()
+        if post.data:
+            new_count = max(0, post.data[0].get("likes_count", 1) - 1)
+            supabase.table("posts").update({"likes_count": new_count}).eq("id", post_id).execute()
+        
+        return {"liked": False}
+    else:
+        supabase.table("post_likes").insert({
+            "post_id": post_id,
+            "user_id": user_id
+        }).execute()
+        
+        post = supabase.table("posts").select("likes_count").eq("id", post_id).execute()
+        if post.data:
+            new_count = post.data[0].get("likes_count", 0) + 1
+            supabase.table("posts").update({"likes_count": new_count}).eq("id", post_id).execute()
+        
+        return {"liked": True}
+
+@app.get("/mcp/posts/{post_id}/comments")
+async def get_post_comments(post_id: str):
+    supabase = get_supabase()
+    result = supabase.table("post_comments")\
+        .select("*")\
+        .eq("post_id", post_id)\
+        .order("created_at")\
+        .execute()
+    
+    return [db_to_comment(row) for row in result.data]
+
+@app.post("/mcp/posts/{post_id}/comments")
+async def add_post_comment(post_id: str, comment: CommentCreate, user = Depends(get_current_user)):
+    supabase = get_supabase()
+    user_id = user.id if user else "anonymous"
+    user_name = user.email if user else "Anonymous"
+    
+    new_comment = {
+        "post_id": post_id,
+        "user_id": user_id,
+        "user_name": user_name,
+        "content": comment.content,
+    }
+    
+    result = supabase.table("post_comments").insert(new_comment).execute()
+    
+    post = supabase.table("posts").select("comments_count").eq("id", post_id).execute()
+    if post.data:
+        new_count = post.data[0].get("comments_count", 0) + 1
+        supabase.table("posts").update({"comments_count": new_count}).eq("id", post_id).execute()
+    
+    if result.data:
+        return db_to_comment(result.data[0])
+    raise HTTPException(status_code=500, detail="Failed to add comment")
 
 @app.get("/mcp/health")
 async def health_check():
