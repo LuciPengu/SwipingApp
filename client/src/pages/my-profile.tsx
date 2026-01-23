@@ -29,6 +29,7 @@ export default function MyProfilePage() {
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
   const [department, setDepartment] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
 
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ['/mcp/profiles/me'],
@@ -74,6 +75,7 @@ export default function MyProfilePage() {
     setDisplayName(profile?.displayName || user?.email?.split('@')[0] || "");
     setBio(profile?.bio || "");
     setDepartment(profile?.department || "");
+    setAvatarUrl(profile?.avatarUrl || "");
     setIsEditing(true);
   };
 
@@ -82,6 +84,7 @@ export default function MyProfilePage() {
       displayName: displayName || undefined,
       bio: bio || undefined,
       department: department || undefined,
+      avatarUrl: avatarUrl || undefined,
     });
   };
 
@@ -144,15 +147,25 @@ export default function MyProfilePage() {
         <CardContent>
           {isEditing ? (
             <div className="space-y-4">
-              <div className="flex items-center gap-6 mb-6">
-                <Avatar className="w-20 h-20 border-4 border-primary">
-                  <AvatarImage src={profile?.avatarUrl || undefined} />
+              <div className="flex items-start gap-6 mb-2">
+                <Avatar className="w-20 h-20 border-4 border-primary flex-shrink-0">
+                  <AvatarImage src={avatarUrl || profile?.avatarUrl || undefined} />
                   <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
-                    {getInitials(currentName)}
+                    {getInitials(displayName || currentName)}
                   </AvatarFallback>
                 </Avatar>
-                <div className="text-sm text-muted-foreground">
-                  <p>Avatar changes coming soon</p>
+                <div className="flex-1 space-y-2">
+                  <Label htmlFor="avatarUrl">Avatar URL</Label>
+                  <Input
+                    id="avatarUrl"
+                    value={avatarUrl}
+                    onChange={(e) => setAvatarUrl(e.target.value)}
+                    placeholder="https://example.com/avatar.jpg"
+                    data-testid="input-avatar-url"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Enter a URL to an image for your profile picture
+                  </p>
                 </div>
               </div>
 

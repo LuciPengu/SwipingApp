@@ -56,6 +56,7 @@ export interface CreateMemberData {
   displayName: string;
   department?: string;
   role?: string;
+  avatarUrl?: string;
 }
 
 export const mcpClient = {

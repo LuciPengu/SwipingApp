@@ -37,6 +37,7 @@ const createMemberSchema = z.object({
   displayName: z.string().min(1, "Name is required").min(2, "Name must be at least 2 characters"),
   department: z.string().optional(),
   role: z.string().default("Agent"),
+  avatarUrl: z.string().url("Please enter a valid URL").optional().or(z.literal("")),
 });
 
 type CreateMemberFormData = z.infer<typeof createMemberSchema>;
@@ -56,6 +57,7 @@ export function AddMemberDialog({ trigger }: AddMemberDialogProps) {
       displayName: "",
       department: "",
       role: "Agent",
+      avatarUrl: "",
     },
   });
 
@@ -65,6 +67,7 @@ export function AddMemberDialog({ trigger }: AddMemberDialogProps) {
       displayName: data.displayName,
       department: data.department || undefined,
       role: data.role,
+      avatarUrl: data.avatarUrl || undefined,
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/mcp/profiles'] });
@@ -158,6 +161,24 @@ export function AddMemberDialog({ trigger }: AddMemberDialogProps) {
                     <Input
                       placeholder="IT Support"
                       data-testid="input-member-department"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="avatarUrl"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Avatar URL</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="https://example.com/avatar.jpg"
+                      data-testid="input-member-avatar"
                       {...field}
                     />
                   </FormControl>

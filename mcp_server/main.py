@@ -473,6 +473,7 @@ class CreateMemberData(BaseModel):
     displayName: str
     department: Optional[str] = None
     role: Optional[str] = "Agent"
+    avatarUrl: Optional[str] = None
 
 @app.get("/mcp/profiles")
 async def get_all_profiles():
@@ -498,6 +499,7 @@ async def create_member(data: CreateMemberData):
             "display_name": data.displayName,
             "department": data.department,
             "role": data.role or "Agent",
+            "avatar_url": data.avatarUrl,
             "created_at": datetime.utcnow().isoformat(),
             "updated_at": datetime.utcnow().isoformat(),
         }
