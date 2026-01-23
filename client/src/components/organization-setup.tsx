@@ -16,10 +16,11 @@ import {
   FormMessage,
   FormDescription,
 } from "@/components/ui/form";
-import { Building2, Users, Loader2 } from "lucide-react";
+import { Building2, Users, Loader2, Copy, Check, PartyPopper } from "lucide-react";
 import { mcpClient } from "@/lib/mcp-client";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import type { Organization } from "@shared/schema";
 
 const createOrgSchema = z.object({
   name: z.string().min(2, "Organization name must be at least 2 characters"),
@@ -39,7 +40,17 @@ interface OrganizationSetupProps {
 
 export function OrganizationSetup({ onComplete }: OrganizationSetupProps) {
   const [activeTab, setActiveTab] = useState("create");
+  const [createdOrg, setCreatedOrg] = useState<Organization | null>(null);
+  const [copied, setCopied] = useState(false);
   const { toast } = useToast();
+
+  const copyOrgCode = () => {
+    if (createdOrg?.slug) {
+      navigator.clipboard.writeText(createdOrg.slug);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   const createForm = useForm<CreateOrgFormData>({
     resolver: zodResolver(createOrgSchema),
@@ -57,18 +68,17 @@ export function OrganizationSetup({ onComplete }: OrganizationSetupProps) {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: CreateOrgFormData) => mcpClient.createOrganization({
-      name: data.name,
-      domain: data.domain || undefined,
-    }),
-    onSuccess: () => {
+    mutationFn: async (data: CreateOrgFormData): Promise<Organization> => {
+      const result = await mcpClient.createOrganization({
+        name: data.name,
+        domain: data.domain || undefined,
+      });
+      return result as Organization;
+    },
+    onSuccess: (org: Organization) => {
       queryClient.invalidateQueries({ queryKey: ['/mcp/organizations/my'] });
       queryClient.invalidateQueries({ queryKey: ['/mcp/profiles/me'] });
-      toast({
-        title: "Organization created",
-        description: "Your organization has been set up with default ITSM configuration.",
-      });
-      onComplete();
+      setCreatedOrg(org);
     },
     onError: (error: Error) => {
       toast({
@@ -106,6 +116,62 @@ export function OrganizationSetup({ onComplete }: OrganizationSetupProps) {
   const onJoinSubmit = (data: JoinOrgFormData) => {
     joinMutation.mutate(data);
   };
+
+  if (createdOrg) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 bg-background">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-4 w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center">
+              <PartyPopper className="w-6 h-6 text-green-500" />
+            </div>
+            <CardTitle className="text-2xl">Organization Created!</CardTitle>
+            <CardDescription>
+              Share this code with your team members so they can join.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">
+                Organization Name
+              </label>
+              <p className="text-lg font-semibold">{createdOrg.name}</p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">
+                Organization Code (Share this with your team)
+              </label>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 px-4 py-3 bg-muted rounded-md font-mono text-lg font-bold tracking-wider">
+                  {createdOrg.slug}
+                </div>
+                <Button
+                  size="icon"
+                  variant="outline"
+                  onClick={copyOrgCode}
+                  data-testid="button-copy-org-code"
+                >
+                  {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Team members enter this code when they select "Join Existing" during signup.
+              </p>
+            </div>
+
+            <Button
+              className="w-full"
+              onClick={onComplete}
+              data-testid="button-continue-to-app"
+            >
+              Continue to App
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-background">
