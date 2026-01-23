@@ -151,7 +151,7 @@ export function PostCard({
           POST
         </Badge>
         
-        <Badge variant="secondary" className="bg-black/50 backdrop-blur-sm border-0">
+        <Badge variant="secondary" className="bg-black/50 backdrop-blur-sm border-0 text-white">
           {formatTimeAgo(post.createdAt)}
         </Badge>
       </div>
