@@ -98,12 +98,7 @@ function AppContent() {
         <AppSidebar streak={stats?.streak || 0} coins={stats?.coins || 0} />
         <div className="flex flex-col flex-1 min-w-0">
           <header className="flex items-center justify-between p-3 border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-50">
-            <div className="flex items-center gap-2">
-              <SidebarTrigger data-testid="button-sidebar-toggle" />
-              <span className="text-sm text-muted-foreground hidden sm:block">
-                Swipe through tickets. Resolve with style.
-              </span>
-            </div>
+            <SidebarTrigger data-testid="button-sidebar-toggle" />
             <ThemeToggle />
           </header>
           <main className="flex-1 overflow-hidden">
