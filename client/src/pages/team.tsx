@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Users, Mail, Building2, ChevronRight } from "lucide-react";
 import { mcpClient } from "@/lib/mcp-client";
+import { AddMemberDialog } from "@/components/add-member-dialog";
 import type { Profile } from "@shared/schema";
 
 export default function Team() {
@@ -47,14 +48,17 @@ export default function Team() {
 
   return (
     <div className="p-6 space-y-6 overflow-y-auto h-full" data-testid="page-team">
-      <div className="flex items-center gap-3 mb-6">
-        <Users className="w-8 h-8 text-primary" />
-        <div>
-          <h1 className="text-2xl font-bold">Team</h1>
-          <p className="text-muted-foreground">
-            {profiles?.length || 0} team members
-          </p>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <Users className="w-8 h-8 text-primary" />
+          <div>
+            <h1 className="text-2xl font-bold">Team</h1>
+            <p className="text-muted-foreground">
+              {profiles?.length || 0} team members
+            </p>
+          </div>
         </div>
+        <AddMemberDialog />
       </div>
 
       {profiles?.length === 0 ? (
