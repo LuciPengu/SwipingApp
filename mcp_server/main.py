@@ -183,7 +183,18 @@ async def assign_ticket(ticket_id: str, user = Depends(get_current_user)):
     tickets_db[ticket_id]["status"] = "assigned"
     tickets_db[ticket_id]["updatedAt"] = datetime.utcnow().isoformat() + "Z"
     
-    stats = agent_stats_db.get(user_id, agent_stats_db["default"])
+    default_stats = {
+        "agentId": user_id,
+        "agentName": user_name,
+        "ticketsResolved": 0,
+        "ticketsAssigned": 0,
+        "avgResolutionTime": 0,
+        "streak": 0,
+        "coins": 0,
+        "rank": 1,
+        "level": 1
+    }
+    stats = agent_stats_db.get(user_id, default_stats.copy())
     stats["ticketsAssigned"] = stats.get("ticketsAssigned", 0) + 1
     agent_stats_db[user_id] = stats
     
@@ -205,7 +216,19 @@ async def resolve_ticket(ticket_id: str, user = Depends(get_current_user)):
         tickets_db[ticket_id]["assigneeId"] = user_id
         tickets_db[ticket_id]["assigneeName"] = user.email if user else "Agent Mike"
     
-    stats = agent_stats_db.get(user_id, agent_stats_db["default"].copy())
+    user_name = user.email if user else "Agent Mike"
+    default_stats = {
+        "agentId": user_id,
+        "agentName": user_name,
+        "ticketsResolved": 0,
+        "ticketsAssigned": 0,
+        "avgResolutionTime": 0,
+        "streak": 0,
+        "coins": 0,
+        "rank": 1,
+        "level": 1
+    }
+    stats = agent_stats_db.get(user_id, default_stats.copy())
     stats["ticketsResolved"] = stats.get("ticketsResolved", 0) + 1
     stats["streak"] = stats.get("streak", 0) + 1
     stats["coins"] = stats.get("coins", 0) + 25
