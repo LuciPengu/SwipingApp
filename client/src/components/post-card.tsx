@@ -162,7 +162,7 @@ export function PostCard({
           <Button
             size="icon"
             variant="ghost"
-            className={`w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm ${isLiked ? 'text-red-500' : ''}`}
+            className={`w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm text-white ${isLiked ? 'text-red-500' : ''}`}
             onClick={() => {
               setIsLiked(!isLiked);
               onLike(post.id);
@@ -178,7 +178,7 @@ export function PostCard({
           <Button
             size="icon"
             variant="ghost"
-            className="w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm"
+            className="w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm text-white"
             onClick={() => onComment(post.id)}
             data-testid={`button-comment-${post.id}`}
           >
@@ -191,7 +191,7 @@ export function PostCard({
           <Button
             size="icon"
             variant="ghost"
-            className="w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm"
+            className="w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm text-white"
             data-testid={`button-share-${post.id}`}
           >
             <Share2 className="w-5 h-5" />

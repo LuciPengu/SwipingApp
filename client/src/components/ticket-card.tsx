@@ -288,7 +288,7 @@ export function TicketCard({
           <Button
             size="icon"
             variant="ghost"
-            className={`w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm ${isLiked ? 'text-primary' : ''}`}
+            className={`w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm text-white ${isLiked ? 'text-red-500' : ''}`}
             onClick={() => {
               setIsLiked(!isLiked);
               if (!isLiked) onAssign(ticket.id);
@@ -304,7 +304,7 @@ export function TicketCard({
           <Button
             size="icon"
             variant="ghost"
-            className="w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm"
+            className="w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm text-white"
             onClick={() => onViewActivity(ticket.id)}
             data-testid={`button-activity-${ticket.id}`}
           >
@@ -317,11 +317,11 @@ export function TicketCard({
           <Button
             size="icon"
             variant="ghost"
-            className="w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm"
+            className="w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm text-white"
             onClick={() => onResolve(ticket.id)}
             data-testid={`button-resolve-${ticket.id}`}
           >
-            <CheckCircle2 className="w-5 h-5 text-green-400" />
+            <CheckCircle2 className="w-5 h-5" />
           </Button>
           <span className="text-[10px] text-white/80 mt-0.5">Resolve</span>
         </div>
@@ -330,11 +330,11 @@ export function TicketCard({
           <Button
             size="icon"
             variant="ghost"
-            className="w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm"
+            className="w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm text-white"
             onClick={() => onEscalate(ticket.id)}
             data-testid={`button-escalate-${ticket.id}`}
           >
-            <AlertTriangle className="w-5 h-5 text-orange-400" />
+            <AlertTriangle className="w-5 h-5" />
           </Button>
           <span className="text-[10px] text-white/80 mt-0.5">Escalate</span>
         </div>
@@ -343,7 +343,7 @@ export function TicketCard({
           <Button
             size="icon"
             variant="ghost"
-            className="w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm"
+            className="w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm text-white"
             data-testid={`button-share-${ticket.id}`}
           >
             <Share2 className="w-5 h-5" />
