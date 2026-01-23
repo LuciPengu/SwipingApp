@@ -105,31 +105,9 @@ export function TicketFeed({
   const currentTicket = tickets[currentIndex];
 
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center p-4" data-testid="container-ticket-feed">
-      {/* Feed Progress Indicator */}
-      <div className="w-full max-w-md mb-3 flex gap-1">
-        {tickets.map((_, idx) => (
-          <div 
-            key={idx}
-            className={`h-1 flex-1 rounded-full transition-colors ${
-              idx === currentIndex 
-                ? 'bg-primary' 
-                : idx < currentIndex 
-                  ? 'bg-muted-foreground/50' 
-                  : 'bg-muted'
-            }`}
-          />
-        ))}
-      </div>
-
-      {/* Ticket Counter */}
-      <div className="w-full max-w-md mb-2 flex justify-between items-center text-sm text-muted-foreground">
-        <span data-testid="text-ticket-counter">{currentIndex + 1} of {tickets.length}</span>
-        <span className="text-xs">Swipe to navigate</span>
-      </div>
-
+    <div className="w-full h-full flex flex-col items-center justify-center p-2" data-testid="container-ticket-feed">
       {/* Main Feed Card */}
-      <div className="h-[calc(100vh-180px)] aspect-[9/16] relative">
+      <div className="h-[calc(100vh-100px)] aspect-[9/16] relative">
         {currentTicket && (
           <TicketCard
             key={currentTicket.id}
@@ -140,6 +118,8 @@ export function TicketFeed({
             onSkip={handleSkip}
             onViewActivity={handleViewActivity}
             isActive={true}
+            currentIndex={currentIndex}
+            totalCount={tickets.length}
           />
         )}
       </div>

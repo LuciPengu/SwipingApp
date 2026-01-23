@@ -31,6 +31,8 @@ interface TicketCardProps {
   onSkip: (ticketId: string) => void;
   onViewActivity: (ticketId: string) => void;
   isActive?: boolean;
+  currentIndex?: number;
+  totalCount?: number;
 }
 
 const categoryIcons = {
@@ -62,7 +64,9 @@ export function TicketCard({
   onEscalate, 
   onSkip,
   onViewActivity,
-  isActive = true 
+  isActive = true,
+  currentIndex = 0,
+  totalCount = 1
 }: TicketCardProps) {
   const [isLiked, setIsLiked] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
@@ -164,8 +168,26 @@ export function TicketCard({
       {/* Gradient Overlay */}
       <div className="absolute inset-0 feed-gradient" />
 
+      {/* Progress Indicator */}
+      {totalCount > 1 && (
+        <div className="absolute top-2 left-2 right-2 flex gap-1 z-20">
+          {Array.from({ length: totalCount }).map((_, idx) => (
+            <div 
+              key={idx}
+              className={`h-1 flex-1 rounded-full transition-colors ${
+                idx === currentIndex 
+                  ? 'bg-white' 
+                  : idx < currentIndex 
+                    ? 'bg-white/50' 
+                    : 'bg-white/20'
+              }`}
+            />
+          ))}
+        </div>
+      )}
+
       {/* Top Bar */}
-      <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between z-10">
+      <div className="absolute top-0 left-0 right-0 p-4 pt-5 flex items-center justify-between z-10">
         <div className="flex items-center gap-2">
           <Badge 
             variant="secondary" 
