@@ -498,6 +498,8 @@ async def create_member(data: CreateMemberData):
             "display_name": data.displayName,
             "department": data.department,
             "role": data.role or "Agent",
+            "created_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.utcnow().isoformat(),
         }
         result = supabase.table("profiles").insert(new_profile).execute()
         if result.data:

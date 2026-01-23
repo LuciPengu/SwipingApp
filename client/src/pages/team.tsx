@@ -48,8 +48,8 @@ export default function Team() {
 
   return (
     <div className="p-6 space-y-6 overflow-y-auto h-full" data-testid="page-team">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-3 flex-wrap">
           <Users className="w-8 h-8 text-primary" />
           <div>
             <h1 className="text-2xl font-bold">Team</h1>
