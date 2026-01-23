@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
 import { CreateTicketDialog } from "@/components/create-ticket-dialog";
+import { CreatePostDialog } from "@/components/create-post-dialog";
 import { 
   Home, 
   PlayCircle, 
@@ -26,7 +27,10 @@ import {
   Settings,
   Flame,
   Bell,
-  LogOut
+  LogOut,
+  Users,
+  Megaphone,
+  Plus
 } from "lucide-react";
 
 const mainMenuItems = [
@@ -38,6 +42,7 @@ const mainMenuItems = [
 
 const discoverItems = [
   { title: "Leaderboard", url: "/leaderboard", icon: Trophy },
+  { title: "Team", url: "/team", icon: Users },
   { title: "Knowledge Base", url: "/knowledge", icon: PlayCircle },
 ];
 
@@ -70,8 +75,18 @@ export function AppSidebar({ streak = 0, coins = 0 }: AppSidebarProps) {
 
       <SidebarContent>
         {/* Quick Actions */}
-        <div className="p-3">
+        <div className="p-3 space-y-2">
           <CreateTicketDialog />
+          <CreatePostDialog>
+            <Button 
+              variant="outline" 
+              className="w-full justify-start gap-2"
+              data-testid="button-create-post"
+            >
+              <Megaphone className="w-4 h-4" />
+              Create Post
+            </Button>
+          </CreatePostDialog>
         </div>
 
         {/* Main Navigation */}

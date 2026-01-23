@@ -16,6 +16,7 @@ import Resolved from "@/pages/resolved";
 import Escalated from "@/pages/escalated";
 import Leaderboard from "@/pages/leaderboard";
 import Knowledge from "@/pages/knowledge";
+import Team from "@/pages/team";
 import Login from "@/pages/login";
 import type { AgentStats } from "@shared/schema";
 import { Loader2 } from "lucide-react";
@@ -59,6 +60,9 @@ function Router() {
       </Route>
       <Route path="/knowledge">
         <ProtectedRoute component={Knowledge} />
+      </Route>
+      <Route path="/team">
+        <ProtectedRoute component={Team} />
       </Route>
       <Route component={NotFound} />
     </Switch>

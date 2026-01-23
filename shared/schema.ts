@@ -119,6 +119,49 @@ export interface LeaderboardUser extends User {
   rank: number;
 }
 
+// Profile type
+export interface Profile {
+  id: string;
+  userId: string;
+  email: string;
+  displayName: string;
+  avatarUrl?: string | null;
+  bio?: string | null;
+  department?: string | null;
+  role: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Post type for social feed
+export interface Post {
+  id: string;
+  userId: string;
+  userName: string;
+  userAvatar?: string | null;
+  content: string;
+  imageUrl?: string | null;
+  likesCount: number;
+  commentsCount: number;
+  createdAt: string;
+  updatedAt: string;
+  type: "post";
+}
+
+// Post comment type
+export interface PostComment {
+  id: string;
+  postId: string;
+  userId: string;
+  userName: string;
+  userAvatar?: string | null;
+  content: string;
+  createdAt: string;
+}
+
+// Mixed feed item (ticket or post)
+export type FeedItem = (FeedTicket & { type: "ticket" }) | Post;
+
 // Activity creation schema for validation
 export const createActivitySchema = z.object({
   content: z.string().min(1, "Content is required"),

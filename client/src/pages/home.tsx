@@ -1,17 +1,17 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { TicketFeed } from "@/components/ticket-feed";
+import { MixedFeed } from "@/components/mixed-feed";
 import { AgentStats } from "@/components/agent-stats";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import { mcpClient } from "@/lib/mcp-client";
-import type { FeedTicket, AgentStats as AgentStatsType } from "@shared/schema";
+import type { FeedItem, AgentStats as AgentStatsType } from "@shared/schema";
 
 export default function Home() {
   const { toast } = useToast();
 
-  const { data: tickets, isLoading: ticketsLoading, refetch: refetchTickets } = useQuery<FeedTicket[]>({
-    queryKey: ['/mcp/tickets/feed'],
-    queryFn: () => mcpClient.getFeed() as Promise<FeedTicket[]>,
+  const { data: feedItems, isLoading: feedLoading, refetch: refetchFeed } = useQuery<FeedItem[]>({
+    queryKey: ['/mcp/feed/mixed'],
+    queryFn: () => mcpClient.getMixedFeed() as Promise<FeedItem[]>,
   });
 
   const { data: stats, isLoading: statsLoading } = useQuery<AgentStatsType>({
@@ -24,7 +24,7 @@ export default function Home() {
       return mcpClient.assignTicket(ticketId);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/mcp/tickets/feed'] });
+      queryClient.invalidateQueries({ queryKey: ['/mcp/feed/mixed'] });
       queryClient.invalidateQueries({ queryKey: ['/mcp/tickets/queue'] });
       queryClient.invalidateQueries({ queryKey: ['/mcp/agent/stats'] });
       toast({
@@ -39,7 +39,7 @@ export default function Home() {
       return mcpClient.resolveTicket(ticketId);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/mcp/tickets/feed'] });
+      queryClient.invalidateQueries({ queryKey: ['/mcp/feed/mixed'] });
       queryClient.invalidateQueries({ queryKey: ['/mcp/tickets/queue'] });
       queryClient.invalidateQueries({ queryKey: ['/mcp/tickets/resolved'] });
       queryClient.invalidateQueries({ queryKey: ['/mcp/agent/stats'] });
@@ -55,13 +55,23 @@ export default function Home() {
       return mcpClient.escalateTicket(ticketId);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/mcp/tickets/feed'] });
+      queryClient.invalidateQueries({ queryKey: ['/mcp/feed/mixed'] });
       queryClient.invalidateQueries({ queryKey: ['/mcp/tickets/queue'] });
       queryClient.invalidateQueries({ queryKey: ['/mcp/tickets/escalated'] });
       toast({
         title: "Ticket Escalated",
         description: "This ticket has been sent to Tier 2.",
       });
+    },
+  });
+
+  const likePostMutation = useMutation({
+    mutationFn: async (postId: string) => {
+      return mcpClient.likePost(postId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/mcp/feed/mixed'] });
+      queryClient.invalidateQueries({ queryKey: ['/mcp/posts'] });
     },
   });
 
@@ -77,8 +87,12 @@ export default function Home() {
     escalateMutation.mutate(ticketId);
   };
 
+  const handleLikePost = (postId: string) => {
+    likePostMutation.mutate(postId);
+  };
+
   const handleRefresh = () => {
-    refetchTickets();
+    refetchFeed();
   };
 
   const defaultStats: AgentStatsType = {
@@ -93,12 +107,13 @@ export default function Home() {
   return (
     <div className="flex h-full" data-testid="page-home">
       <div className="flex-1 h-full overflow-hidden">
-        <TicketFeed
-          tickets={tickets || []}
-          isLoading={ticketsLoading}
+        <MixedFeed
+          items={feedItems || []}
+          isLoading={feedLoading}
           onAssign={handleAssign}
           onResolve={handleResolve}
           onEscalate={handleEscalate}
+          onLikePost={handleLikePost}
           onRefresh={handleRefresh}
         />
       </div>

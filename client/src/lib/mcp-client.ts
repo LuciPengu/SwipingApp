@@ -45,8 +45,14 @@ export interface CreateTicketData {
   bountyAmount?: number;
 }
 
+export interface CreatePostData {
+  content: string;
+  imageUrl?: string;
+}
+
 export const mcpClient = {
   getFeed: () => mcpRequest('GET', '/tickets/feed'),
+  getMixedFeed: () => mcpRequest('GET', '/feed/mixed'),
   getQueue: () => mcpRequest('GET', '/tickets/queue'),
   getResolved: () => mcpRequest('GET', '/tickets/resolved'),
   getEscalated: () => mcpRequest('GET', '/tickets/escalated'),
@@ -59,4 +65,17 @@ export const mcpClient = {
     mcpRequest('POST', `/tickets/${ticketId}/activities`, data),
   getAgentStats: () => mcpRequest('GET', '/agent/stats'),
   getLeaderboard: () => mcpRequest('GET', '/leaderboard'),
+  
+  getProfiles: () => mcpRequest('GET', '/profiles'),
+  getProfile: (userId: string) => mcpRequest('GET', `/profiles/${userId}`),
+  getMyProfile: () => mcpRequest('GET', '/profiles/me'),
+  updateMyProfile: (data: { displayName?: string; bio?: string; department?: string; avatarUrl?: string }) => 
+    mcpRequest('PUT', '/profiles/me', data),
+  
+  getPosts: () => mcpRequest('GET', '/posts'),
+  createPost: (data: CreatePostData) => mcpRequest('POST', '/posts', data),
+  likePost: (postId: string) => mcpRequest('POST', `/posts/${postId}/like`),
+  getPostComments: (postId: string) => mcpRequest('GET', `/posts/${postId}/comments`),
+  addPostComment: (postId: string, data: { content: string }) => 
+    mcpRequest('POST', `/posts/${postId}/comments`, data),
 };
