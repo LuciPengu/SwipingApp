@@ -17,6 +17,7 @@ import Escalated from "@/pages/escalated";
 import Leaderboard from "@/pages/leaderboard";
 import Knowledge from "@/pages/knowledge";
 import Team from "@/pages/team";
+import ProfilePage from "@/pages/profile";
 import Login from "@/pages/login";
 import type { AgentStats } from "@shared/schema";
 import { Loader2 } from "lucide-react";
@@ -63,6 +64,9 @@ function Router() {
       </Route>
       <Route path="/team">
         <ProtectedRoute component={Team} />
+      </Route>
+      <Route path="/profile/:userId">
+        <ProtectedRoute component={ProfilePage} />
       </Route>
       <Route component={NotFound} />
     </Switch>

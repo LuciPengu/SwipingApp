@@ -72,7 +72,7 @@ export const mcpClient = {
   updateMyProfile: (data: { displayName?: string; bio?: string; department?: string; avatarUrl?: string }) => 
     mcpRequest('PUT', '/profiles/me', data),
   
-  getPosts: () => mcpRequest('GET', '/posts'),
+  getPosts: (userId?: string) => mcpRequest('GET', userId ? `/posts?user_id=${userId}` : '/posts'),
   createPost: (data: CreatePostData) => mcpRequest('POST', '/posts', data),
   likePost: (postId: string) => mcpRequest('POST', `/posts/${postId}/like`),
   getPostComments: (postId: string) => mcpRequest('GET', `/posts/${postId}/comments`),

@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users, Mail, Building2 } from "lucide-react";
+import { Users, Mail, Building2, ChevronRight } from "lucide-react";
 import { mcpClient } from "@/lib/mcp-client";
 import type { Profile } from "@shared/schema";
 
@@ -69,44 +70,49 @@ export default function Team() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {profiles?.map((profile) => (
-            <Card key={profile.id} className="hover-elevate" data-testid={`card-profile-${profile.id}`}>
-              <CardContent className="p-6">
-                <div className="flex items-start gap-4">
-                  <Avatar className="w-16 h-16 border-2 border-primary">
-                    <AvatarImage src={profile.avatarUrl || undefined} />
-                    <AvatarFallback className="bg-primary text-primary-foreground text-xl">
-                      {getInitials(profile.displayName)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-lg truncate" data-testid={`text-name-${profile.id}`}>
-                      {profile.displayName}
-                    </h3>
-                    <Badge variant="secondary" className="mb-2">
-                      {profile.role}
-                    </Badge>
-                    
-                    {profile.department && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
-                        <Building2 className="w-4 h-4" />
-                        <span>{profile.department}</span>
+            <Link key={profile.id} href={`/profile/${profile.userId}`}>
+              <Card className="hover-elevate cursor-pointer" data-testid={`card-profile-${profile.id}`}>
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-4">
+                    <Avatar className="w-16 h-16 border-2 border-primary">
+                      <AvatarImage src={profile.avatarUrl || undefined} />
+                      <AvatarFallback className="bg-primary text-primary-foreground text-xl">
+                        {getInitials(profile.displayName)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-semibold text-lg truncate" data-testid={`text-name-${profile.id}`}>
+                          {profile.displayName}
+                        </h3>
+                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
                       </div>
-                    )}
-                    
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                      <Mail className="w-4 h-4" />
-                      <span className="truncate">{profile.email}</span>
+                      <Badge variant="secondary" className="mb-2">
+                        {profile.role}
+                      </Badge>
+                      
+                      {profile.department && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
+                          <Building2 className="w-4 h-4" />
+                          <span>{profile.department}</span>
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                        <Mail className="w-4 h-4" />
+                        <span className="truncate">{profile.email}</span>
+                      </div>
+                      
+                      {profile.bio && (
+                        <p className="text-sm text-muted-foreground mt-3 line-clamp-2">
+                          {profile.bio}
+                        </p>
+                      )}
                     </div>
-                    
-                    {profile.bio && (
-                      <p className="text-sm text-muted-foreground mt-3 line-clamp-2">
-                        {profile.bio}
-                      </p>
-                    )}
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
       )}

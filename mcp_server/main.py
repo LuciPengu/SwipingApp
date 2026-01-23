@@ -469,20 +469,25 @@ async def get_mixed_feed():
 @app.get("/mcp/profiles")
 async def get_all_profiles():
     supabase = get_supabase()
-    result = supabase.table("profiles")\
-        .select("*")\
-        .order("display_name")\
-        .execute()
-    
-    return [db_to_profile(row) for row in result.data]
+    try:
+        result = supabase.table("profiles")\
+            .select("*")\
+            .order("display_name")\
+            .execute()
+        return [db_to_profile(row) for row in result.data]
+    except Exception as e:
+        print(f"Profiles error: {e}")
+        return []
 
 @app.get("/mcp/profiles/{user_id}")
 async def get_profile(user_id: str):
     supabase = get_supabase()
-    result = supabase.table("profiles").select("*").eq("user_id", user_id).execute()
-    
-    if result.data:
-        return db_to_profile(result.data[0])
+    try:
+        result = supabase.table("profiles").select("*").eq("user_id", user_id).execute()
+        if result.data:
+            return db_to_profile(result.data[0])
+    except Exception as e:
+        print(f"Profile error: {e}")
     raise HTTPException(status_code=404, detail="Profile not found")
 
 @app.get("/mcp/profiles/me")
@@ -543,15 +548,17 @@ async def update_my_profile(profile: ProfileUpdate, user = Depends(get_current_u
     raise HTTPException(status_code=400, detail="No updates provided")
 
 @app.get("/mcp/posts")
-async def get_posts():
+async def get_posts(user_id: Optional[str] = None):
     supabase = get_supabase()
-    result = supabase.table("posts")\
-        .select("*")\
-        .order("created_at", desc=True)\
-        .limit(50)\
-        .execute()
-    
-    return [db_to_post(row) for row in result.data]
+    try:
+        query = supabase.table("posts").select("*")
+        if user_id:
+            query = query.eq("user_id", user_id)
+        result = query.order("created_at", desc=True).limit(50).execute()
+        return [db_to_post(row) for row in result.data]
+    except Exception as e:
+        print(f"Posts error: {e}")
+        return []
 
 @app.post("/mcp/posts")
 async def create_post(post: PostCreate, user = Depends(get_current_user)):
