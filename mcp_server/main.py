@@ -468,6 +468,12 @@ async def get_mixed_feed():
         print(f"Mixed feed error: {e}")
         return []
 
+class CreateMemberData(BaseModel):
+    email: str
+    displayName: str
+    department: Optional[str] = None
+    role: Optional[str] = "Agent"
+
 @app.get("/mcp/profiles")
 async def get_all_profiles():
     supabase = get_supabase()
@@ -480,6 +486,26 @@ async def get_all_profiles():
     except Exception as e:
         print(f"Profiles error: {e}")
         return []
+
+@app.post("/mcp/profiles")
+async def create_member(data: CreateMemberData):
+    supabase = get_supabase()
+    try:
+        import uuid
+        new_profile = {
+            "user_id": str(uuid.uuid4()),
+            "email": data.email,
+            "display_name": data.displayName,
+            "department": data.department,
+            "role": data.role or "Agent",
+        }
+        result = supabase.table("profiles").insert(new_profile).execute()
+        if result.data:
+            return db_to_profile(result.data[0])
+        raise HTTPException(status_code=400, detail="Failed to create member")
+    except Exception as e:
+        print(f"Create member error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/mcp/profiles/{user_id}")
 async def get_profile(user_id: str):

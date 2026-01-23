@@ -51,6 +51,13 @@ export interface CreatePostData {
   imageUrl?: string;
 }
 
+export interface CreateMemberData {
+  email: string;
+  displayName: string;
+  department?: string;
+  role?: string;
+}
+
 export const mcpClient = {
   getFeed: () => mcpRequest('GET', '/tickets/feed'),
   getMixedFeed: () => mcpRequest('GET', '/feed/mixed'),
@@ -72,6 +79,7 @@ export const mcpClient = {
   getMyProfile: () => mcpRequest('GET', '/profiles/me'),
   updateMyProfile: (data: { displayName?: string; bio?: string; department?: string; avatarUrl?: string }) => 
     mcpRequest('PUT', '/profiles/me', data),
+  createMember: (data: CreateMemberData) => mcpRequest('POST', '/profiles', data),
   
   getPosts: (userId?: string) => mcpRequest('GET', userId ? `/posts?user_id=${userId}` : '/posts'),
   createPost: (data: CreatePostData) => mcpRequest('POST', '/posts', data),
