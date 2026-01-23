@@ -117,18 +117,20 @@ async def create_ticket(ticket: TicketCreate, user = Depends(get_current_user)):
 @app.get("/mcp/tickets/feed")
 async def get_feed():
     supabase = get_supabase()
-    result = supabase.table("tickets")\
-        .select("*")\
-        .eq("status", "open")\
-        .is_("assignee_id", "null")\
-        .order("priority")\
-        .order("sla_deadline")\
-        .execute()
-    
-    tickets = [db_to_ticket(row) for row in result.data]
-    priority_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
-    tickets.sort(key=lambda x: (priority_order.get(x["priority"], 4), x["slaDeadline"]))
-    return tickets
+    try:
+        result = supabase.table("tickets")\
+            .select("*")\
+            .eq("status", "open")\
+            .is_("assignee_id", "null")\
+            .execute()
+        
+        tickets = [db_to_ticket(row) for row in result.data]
+        priority_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+        tickets.sort(key=lambda x: (priority_order.get(x["priority"], 4), x["slaDeadline"]))
+        return tickets
+    except Exception as e:
+        print(f"Feed error: {e}")
+        return []
 
 @app.get("/mcp/tickets/queue")
 async def get_queue(user = Depends(get_current_user)):
