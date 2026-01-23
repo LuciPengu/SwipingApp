@@ -124,7 +124,7 @@ function AppContent() {
   }
 
   if (!organization) {
-    return <OrganizationSetup onComplete={() => refetchOrg()} />;
+    return <OrganizationSetup onComplete={async () => { await refetchOrg(); }} />;
   }
 
   return (
