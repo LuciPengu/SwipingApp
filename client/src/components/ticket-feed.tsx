@@ -56,7 +56,7 @@ export function TicketFeed({
   if (isLoading) {
     return (
       <div className="w-full h-full flex items-center justify-center p-4">
-        <div className="w-full max-w-lg h-[400px] relative">
+        <div className="w-full max-w-md h-[calc(100vh-280px)] max-h-[600px] relative">
           <Skeleton className="w-full h-full rounded-lg" />
           <div className="absolute bottom-0 left-0 right-0 p-4 space-y-3">
             <Skeleton className="h-4 w-24" />
@@ -107,7 +107,7 @@ export function TicketFeed({
   return (
     <div className="w-full h-full flex flex-col items-center justify-center p-4" data-testid="container-ticket-feed">
       {/* Feed Progress Indicator */}
-      <div className="w-full max-w-lg mb-3 flex gap-1">
+      <div className="w-full max-w-md mb-3 flex gap-1">
         {tickets.map((_, idx) => (
           <div 
             key={idx}
@@ -123,13 +123,13 @@ export function TicketFeed({
       </div>
 
       {/* Ticket Counter */}
-      <div className="w-full max-w-lg mb-2 flex justify-between items-center text-sm text-muted-foreground">
+      <div className="w-full max-w-md mb-2 flex justify-between items-center text-sm text-muted-foreground">
         <span data-testid="text-ticket-counter">{currentIndex + 1} of {tickets.length}</span>
         <span className="text-xs">Swipe to navigate</span>
       </div>
 
       {/* Main Feed Card */}
-      <div className="w-full max-w-lg h-[400px] relative">
+      <div className="w-full max-w-md h-[calc(100vh-280px)] max-h-[600px] relative">
         {currentTicket && (
           <TicketCard
             key={currentTicket.id}
@@ -145,7 +145,7 @@ export function TicketFeed({
       </div>
 
       {/* Swipe Instructions */}
-      <div className="w-full max-w-lg mt-4 grid grid-cols-4 gap-2 text-center text-xs text-muted-foreground">
+      <div className="w-full max-w-md mt-4 grid grid-cols-4 gap-2 text-center text-xs text-muted-foreground">
         <div className="flex flex-col items-center gap-1">
           <span className="text-orange-400">Swipe Left</span>
           <span>Escalate</span>
