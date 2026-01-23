@@ -24,13 +24,12 @@ import {
   CheckCircle, 
   AlertTriangle, 
   Trophy, 
-  Settings,
   Flame,
   Bell,
   LogOut,
   Users,
   Megaphone,
-  Plus
+  UserCircle
 } from "lucide-react";
 
 const mainMenuItems = [
@@ -167,20 +166,25 @@ export function AppSidebar({ streak = 0, coins = 0 }: AppSidebarProps) {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-3 border-t border-sidebar-border">
-        <div className="flex items-center gap-3 p-2 rounded-lg hover-elevate">
-          <Avatar className="w-9 h-9">
-            <AvatarImage src="" />
-            <AvatarFallback className="bg-primary text-primary-foreground text-sm">
-              {user ? getInitials(user.displayName || user.email) : 'AG'}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate" data-testid="sidebar-user-name">
-              {user?.displayName || user?.email?.split('@')[0] || 'Agent'}
-            </p>
-            <p className="text-xs text-sidebar-foreground/60">Tier 1 Support</p>
+      <SidebarFooter className="p-3 border-t border-sidebar-border space-y-2">
+        <Link href="/my-profile">
+          <div className="flex items-center gap-3 p-2 rounded-lg hover-elevate cursor-pointer" data-testid="button-my-profile">
+            <Avatar className="w-9 h-9">
+              <AvatarImage src="" />
+              <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                {user ? getInitials(user.displayName || user.email) : 'AG'}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate" data-testid="sidebar-user-name">
+                {user?.displayName || user?.email?.split('@')[0] || 'Agent'}
+              </p>
+              <p className="text-xs text-sidebar-foreground/60">View & Edit Profile</p>
+            </div>
+            <UserCircle className="w-5 h-5 text-muted-foreground" />
           </div>
+        </Link>
+        <div className="flex items-center gap-2">
           <Button size="icon" variant="ghost" data-testid="button-notifications">
             <Bell className="w-4 h-4" />
           </Button>
