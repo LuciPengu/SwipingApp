@@ -26,10 +26,11 @@ export function TicketFeed({
   const [activityOpen, setActivityOpen] = useState(false);
 
   const handleSkip = (ticketId: string) => {
+    if (tickets.length <= 1) return;
+    
     if (currentIndex < tickets.length - 1) {
       setCurrentIndex(prev => prev + 1);
     } else {
-      onRefresh();
       setCurrentIndex(0);
     }
   };
@@ -120,6 +121,7 @@ export function TicketFeed({
             isActive={true}
             currentIndex={currentIndex}
             totalCount={tickets.length}
+            canSkip={tickets.length > 1}
           />
         )}
       </div>

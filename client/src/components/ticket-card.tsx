@@ -33,6 +33,7 @@ interface TicketCardProps {
   isActive?: boolean;
   currentIndex?: number;
   totalCount?: number;
+  canSkip?: boolean;
 }
 
 const categoryIcons = {
@@ -66,7 +67,8 @@ export function TicketCard({
   onViewActivity,
   isActive = true,
   currentIndex = 0,
-  totalCount = 1
+  totalCount = 1,
+  canSkip = true
 }: TicketCardProps) {
   const [isLiked, setIsLiked] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
@@ -100,7 +102,7 @@ export function TicketCard({
         setSwipeDirection("left");
         setTimeout(() => onEscalate(ticket.id), 300);
       }
-    } else if (info.velocity.y < -velocityThreshold || info.offset.y < -threshold) {
+    } else if (canSkip && (info.velocity.y < -velocityThreshold || info.offset.y < -threshold)) {
       setSwipeDirection("up");
       setTimeout(() => onSkip(ticket.id), 300);
     }
