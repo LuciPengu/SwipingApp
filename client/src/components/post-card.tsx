@@ -217,7 +217,12 @@ export function PostCard({
           </div>
         </div>
 
-        {/* Post Content */}
+        {/* Post Title & Content */}
+        {post.title && (
+          <h3 className="text-white text-lg font-bold mb-1" data-testid={`text-title-${post.id}`}>
+            {post.title}
+          </h3>
+        )}
         <p className="text-white text-base leading-relaxed line-clamp-4" data-testid={`text-content-${post.id}`}>
           {post.content}
         </p>

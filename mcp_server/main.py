@@ -38,6 +38,7 @@ class ActivityCreate(BaseModel):
     content: str
 
 class PostCreate(BaseModel):
+    title: Optional[str] = None
     content: str
     imageUrl: Optional[str] = None
 
@@ -117,6 +118,7 @@ def db_to_post(row: dict) -> dict:
         "userId": row["user_id"],
         "userName": row["user_name"],
         "userAvatar": row.get("user_avatar"),
+        "title": row.get("title"),
         "content": row["content"],
         "imageUrl": row.get("image_url"),
         "likesCount": row.get("likes_count", 0),
@@ -569,6 +571,7 @@ async def create_post(post: PostCreate, user = Depends(get_current_user)):
     new_post = {
         "user_id": user_id,
         "user_name": user_name,
+        "title": post.title,
         "content": post.content,
         "image_url": post.imageUrl,
     }

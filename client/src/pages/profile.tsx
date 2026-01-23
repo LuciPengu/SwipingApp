@@ -186,6 +186,9 @@ export default function ProfilePage() {
                         </span>
                       </div>
                       
+                      {post.title && (
+                        <h4 className="font-semibold mb-1">{post.title}</h4>
+                      )}
                       <p className="text-foreground/90 whitespace-pre-wrap mb-3">
                         {post.content}
                       </p>

@@ -139,6 +139,7 @@ export interface Post {
   userId: string;
   userName: string;
   userAvatar?: string | null;
+  title?: string | null;
   content: string;
   imageUrl?: string | null;
   likesCount: number;

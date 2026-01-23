@@ -46,6 +46,7 @@ export interface CreateTicketData {
 }
 
 export interface CreatePostData {
+  title?: string;
   content: string;
   imageUrl?: string;
 }
