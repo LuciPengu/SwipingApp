@@ -884,6 +884,7 @@ async def create_organization(data: OrganizationCreate, user = Depends(get_curre
                 # Create profile with organization
                 supabase.table("profiles").insert({
                     "user_id": user_id,
+                    "email": user.email,
                     "display_name": user.email.split("@")[0] if user.email else "User",
                     "organization_id": org_id,
                     "organization_name": data.name,
@@ -982,6 +983,7 @@ async def join_organization(slug: str, user = Depends(get_current_user)):
             # Create profile with organization
             supabase.table("profiles").insert({
                 "user_id": user_id,
+                "email": user.email,
                 "display_name": user.email.split("@")[0] if user.email else "User",
                 "organization_id": org_data["id"],
                 "organization_name": org_data["name"],
