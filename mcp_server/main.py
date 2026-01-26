@@ -351,11 +351,14 @@ async def assign_ticket(ticket_id: str, user = Depends(get_current_user)):
     stats_result = supabase.table("agent_stats").select("*").eq("agent_id", user_id).execute()
     if stats_result.data:
         current_stats = stats_result.data[0]
+        update_stats = {
+            "tickets_assigned": current_stats["tickets_assigned"] + 1,
+            "updated_at": datetime.utcnow().isoformat()
+        }
+        if org_id and not current_stats.get("organization_id"):
+            update_stats["organization_id"] = org_id
         supabase.table("agent_stats")\
-            .update({
-                "tickets_assigned": current_stats["tickets_assigned"] + 1,
-                "updated_at": datetime.utcnow().isoformat()
-            })\
+            .update(update_stats)\
             .eq("agent_id", user_id)\
             .execute()
     else:
@@ -408,13 +411,16 @@ async def resolve_ticket(ticket_id: str, user = Depends(get_current_user)):
     stats_result = supabase.table("agent_stats").select("*").eq("agent_id", user_id).execute()
     if stats_result.data:
         current_stats = stats_result.data[0]
+        update_stats = {
+            "tickets_resolved": current_stats["tickets_resolved"] + 1,
+            "streak": current_stats["streak"] + 1,
+            "coins": current_stats["coins"] + 25 + bounty_coins,
+            "updated_at": now
+        }
+        if org_id and not current_stats.get("organization_id"):
+            update_stats["organization_id"] = org_id
         supabase.table("agent_stats")\
-            .update({
-                "tickets_resolved": current_stats["tickets_resolved"] + 1,
-                "streak": current_stats["streak"] + 1,
-                "coins": current_stats["coins"] + 25 + bounty_coins,
-                "updated_at": now
-            })\
+            .update(update_stats)\
             .eq("agent_id", user_id)\
             .execute()
     else:
