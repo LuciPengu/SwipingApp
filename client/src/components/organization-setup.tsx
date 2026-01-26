@@ -162,7 +162,7 @@ export function OrganizationSetup({ onComplete }: OrganizationSetupProps) {
 
             <Button
               className="w-full"
-              onClick={() => window.location.reload()}
+              onClick={onComplete}
               data-testid="button-continue-to-app"
             >
               Continue to App
