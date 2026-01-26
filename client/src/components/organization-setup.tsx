@@ -92,13 +92,11 @@ export function OrganizationSetup({ onComplete }: OrganizationSetupProps) {
   const joinMutation = useMutation({
     mutationFn: (data: JoinOrgFormData) => mcpClient.joinOrganization(data.slug),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/mcp/organizations/my'] });
-      queryClient.invalidateQueries({ queryKey: ['/mcp/profiles/me'] });
       toast({
         title: "Joined organization",
         description: "You have successfully joined the organization.",
       });
-      onComplete();
+      window.location.reload();
     },
     onError: (error: Error) => {
       toast({
@@ -162,7 +160,7 @@ export function OrganizationSetup({ onComplete }: OrganizationSetupProps) {
 
             <Button
               className="w-full"
-              onClick={onComplete}
+              onClick={() => window.location.reload()}
               data-testid="button-continue-to-app"
             >
               Continue to App
