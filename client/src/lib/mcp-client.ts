@@ -121,4 +121,10 @@ export const mcpClient = {
   getPostComments: (postId: string) => mcpRequest('GET', `/posts/${postId}/comments`),
   addPostComment: (postId: string, data: { content: string }) => 
     mcpRequest('POST', `/posts/${postId}/comments`, data),
+  
+  getKnowledgeVideos: () => mcpRequest('GET', '/knowledge/videos'),
+  createKnowledgeVideo: (data: { title: string; description: string; category: string; videoUrl: string }) =>
+    mcpRequest('POST', '/knowledge/videos', data),
+  
+  getAllOrganizations: () => mcpRequest('GET', '/organizations'),
 };

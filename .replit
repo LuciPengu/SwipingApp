@@ -49,3 +49,6 @@ VITE_SUPABASE_URL = "https://jyhcpuvxthfbrdmwloqn.supabase.co"
 VITE_SUPABASE_ANON_KEY = "sb_publishable_MdBIFmy7e_eB1VukGGzrZg_VCTEytKj"
 SUPABASE_URL = "https://jyhcpuvxthfbrdmwloqn.supabase.co"
 SUPABASE_ANON_KEY = "sb_publishable_MdBIFmy7e_eB1VukGGzrZg_VCTEytKj"
+
+[agent]
+integrations = ["javascript_object_storage:2.0.0"]

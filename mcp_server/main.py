@@ -98,6 +98,12 @@ class CategoryCreate(BaseModel):
     icon: Optional[str] = None
     isActive: bool = True
 
+class KnowledgeVideoCreate(BaseModel):
+    title: str
+    description: str
+    category: str
+    videoUrl: str
+
 def db_to_ticket(row: dict) -> dict:
     return {
         "id": str(row["id"]),
@@ -1115,6 +1121,111 @@ async def create_category(data: CategoryCreate, user = Depends(get_current_user)
     except Exception as e:
         print(f"Create category error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/mcp/knowledge/videos")
+async def get_knowledge_videos(user = Depends(get_current_user)):
+    supabase = get_supabase()
+    user_id = user.id if user else None
+    org_id = get_user_organization_id(user_id) if user_id else None
+    
+    try:
+        query = supabase.table("knowledge_videos").select("*").order("created_at", desc=True)
+        if org_id:
+            query = query.eq("organization_id", org_id)
+        result = query.execute()
+        
+        videos = []
+        for row in result.data:
+            videos.append({
+                "id": str(row["id"]),
+                "title": row.get("title", ""),
+                "description": row.get("description", ""),
+                "thumbnailUrl": row.get("thumbnail_url"),
+                "videoUrl": row.get("video_url"),
+                "category": row.get("category", "other"),
+                "authorName": row.get("author_name", "Unknown"),
+                "authorAvatar": row.get("author_avatar"),
+                "views": row.get("views", 0),
+                "likes": row.get("likes", 0),
+                "duration": row.get("duration", "0:00"),
+                "coinsEarned": row.get("coins_earned", 0),
+                "createdAt": str(row.get("created_at", ""))
+            })
+        return videos
+    except Exception as e:
+        print(f"Get knowledge videos error: {e}")
+        return []
+
+@app.post("/mcp/knowledge/videos")
+async def create_knowledge_video(data: KnowledgeVideoCreate, user = Depends(get_current_user)):
+    supabase = get_supabase()
+    user_id = user.id if user else None
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    try:
+        profile = supabase.table("profiles").select("organization_id, display_name, avatar_url").eq("user_id", user_id).execute()
+        if not profile.data or not profile.data[0].get("organization_id"):
+            raise HTTPException(status_code=404, detail="No organization found")
+        
+        org_id = profile.data[0]["organization_id"]
+        author_name = profile.data[0].get("display_name", "Unknown")
+        author_avatar = profile.data[0].get("avatar_url")
+        
+        import uuid
+        new_video = {
+            "id": str(uuid.uuid4()),
+            "organization_id": org_id,
+            "title": data.title,
+            "description": data.description,
+            "category": data.category,
+            "video_url": data.videoUrl,
+            "author_id": user_id,
+            "author_name": author_name,
+            "author_avatar": author_avatar,
+            "views": 0,
+            "likes": 0,
+            "duration": "0:00",
+            "coins_earned": 0,
+        }
+        result = supabase.table("knowledge_videos").insert(new_video).execute()
+        if result.data:
+            row = result.data[0]
+            return {
+                "id": str(row["id"]),
+                "title": row.get("title", ""),
+                "description": row.get("description", ""),
+                "videoUrl": row.get("video_url"),
+                "category": row.get("category", "other"),
+                "authorName": author_name,
+            }
+        raise HTTPException(status_code=400, detail="Failed to create video")
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Create knowledge video error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/mcp/organizations")
+async def get_all_organizations(user = Depends(get_current_user)):
+    supabase = get_supabase()
+    
+    try:
+        result = supabase.table("organizations").select("id, name, slug, logo_url, domain, created_at").order("name").execute()
+        orgs = []
+        for row in result.data:
+            orgs.append({
+                "id": str(row["id"]),
+                "name": row.get("name", ""),
+                "slug": row.get("slug", ""),
+                "logoUrl": row.get("logo_url"),
+                "domain": row.get("domain"),
+                "createdAt": str(row.get("created_at", ""))
+            })
+        return orgs
+    except Exception as e:
+        print(f"Get organizations error: {e}")
+        return []
 
 @app.get("/mcp/health")
 async def health_check():

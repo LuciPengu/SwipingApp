@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { createActivitySchema } from "@shared/schema";
 import { fromError } from "zod-validation-error";
+import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 
 // Default agent ID for demo (simulating logged-in agent)
 const CURRENT_AGENT_ID = "agent-1";
@@ -12,6 +13,9 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  
+  // Register object storage routes for file uploads
+  registerObjectStorageRoutes(app);
   
   // ========== TICKET FEED ENDPOINTS ==========
   

@@ -6,19 +6,32 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
   Settings as SettingsIcon, 
   Building2, 
   Clock, 
   Tag,
   Copy,
-  Check
+  Check,
+  Users,
+  Globe
 } from "lucide-react";
 import { mcpClient } from "@/lib/mcp-client";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import type { Organization, SlaPolicy, TicketCategory } from "@shared/schema";
+
+interface OrganizationListItem {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl?: string;
+  domain?: string;
+  createdAt?: string;
+}
 
 export default function Settings() {
   const { toast } = useToast();
@@ -37,6 +50,11 @@ export default function Settings() {
   const { data: categories = [], isLoading: categoriesLoading } = useQuery({
     queryKey: ['/mcp/config/categories'],
     queryFn: () => mcpClient.getCategories() as Promise<TicketCategory[]>,
+  });
+
+  const { data: allOrganizations = [], isLoading: orgsLoading } = useQuery({
+    queryKey: ['/mcp/organizations'],
+    queryFn: () => mcpClient.getAllOrganizations() as Promise<OrganizationListItem[]>,
   });
 
   const copyOrgCode = () => {
@@ -233,6 +251,64 @@ export default function Settings() {
                 </Badge>
               ))}
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Globe className="w-5 h-5" />
+            All Organizations
+          </CardTitle>
+          <CardDescription>
+            View all organizations in the system
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {orgsLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </div>
+          ) : allOrganizations.length === 0 ? (
+            <p className="text-muted-foreground text-center py-4">No organizations found</p>
+          ) : (
+            <ScrollArea className="h-[300px]">
+              <div className="space-y-2">
+                {allOrganizations.map((org) => (
+                  <div 
+                    key={org.id} 
+                    className={`flex items-center gap-3 p-3 rounded-lg border ${org.id === organization?.id ? 'border-primary bg-primary/5' : ''}`}
+                    data-testid={`org-item-${org.id}`}
+                  >
+                    <Avatar className="h-10 w-10">
+                      {org.logoUrl ? (
+                        <AvatarImage src={org.logoUrl} alt={org.name} />
+                      ) : null}
+                      <AvatarFallback className="bg-primary/20 text-primary">
+                        {org.name.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium truncate">{org.name}</p>
+                        {org.id === organization?.id && (
+                          <Badge variant="secondary" className="text-xs">Current</Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground truncate">
+                        Code: {org.slug}
+                        {org.domain && ` • ${org.domain}`}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <Users className="h-4 w-4" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
           )}
         </CardContent>
       </Card>

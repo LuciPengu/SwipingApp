@@ -81,6 +81,9 @@ shared/
 - `POST /mcp/tickets/:id/activities` - Add comment
 - `GET /mcp/agent/stats` - Current agent stats
 - `GET /mcp/leaderboard` - Agent rankings
+- `GET /mcp/knowledge/videos` - Get knowledge videos
+- `POST /mcp/knowledge/videos` - Create knowledge video
+- `GET /mcp/organizations` - Get all organizations
 
 ## Environment Variables
 Required for frontend (prefix with VITE_):
@@ -142,6 +145,33 @@ ALTER TABLE tickets ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES org
 -- Add organization_id to posts
 ALTER TABLE posts ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id);
 
+-- Add organization_id to agent_stats
+ALTER TABLE agent_stats ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id);
+
+-- Knowledge Videos table for video-based solutions
+CREATE TABLE knowledge_videos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id UUID NOT NULL REFERENCES organizations(id),
+  title TEXT NOT NULL,
+  description TEXT,
+  thumbnail_url TEXT,
+  video_url TEXT,
+  category TEXT DEFAULT 'other',
+  author_id UUID,
+  author_name TEXT,
+  author_avatar TEXT,
+  views INTEGER DEFAULT 0,
+  likes INTEGER DEFAULT 0,
+  duration TEXT DEFAULT '0:00',
+  coins_earned INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable RLS for knowledge_videos
+ALTER TABLE knowledge_videos ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view org videos" ON knowledge_videos FOR SELECT USING (true);
+CREATE POLICY "Users can insert videos" ON knowledge_videos FOR INSERT WITH CHECK (true);
+
 -- Enable RLS for organizations
 ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sla_policies ENABLE ROW LEVEL SECURITY;
@@ -160,6 +190,11 @@ CREATE POLICY "Users can insert categories" ON ticket_categories FOR INSERT WITH
 ```
 
 ## Recent Changes
+- Added video upload to knowledge base using Replit Object Storage
+- Added organization list management in settings page
+- Added knowledge_videos table and MCP endpoints for video CRUD
+- Added organization_id to agent_stats for leaderboard filtering
+- Settings page now shows all organizations with current org highlighted
 - Added multi-tenancy support with organizations
 - Organization setup flow on first login (create or join)
 - ITSM configuration: SLA policies and ticket categories
