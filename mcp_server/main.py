@@ -877,12 +877,29 @@ async def create_organization(data: OrganizationCreate, user = Depends(get_curre
         
         if result.data:
             org_id = result.data[0]["id"]
-            supabase.table("profiles").update({
-                "organization_id": org_id,
-                "organization_name": data.name,
-                "role": "Admin",
-                "updated_at": datetime.utcnow().isoformat()
-            }).eq("user_id", user_id).execute()
+            
+            # Check if profile exists, create if not
+            profile_check = supabase.table("profiles").select("user_id").eq("user_id", user_id).execute()
+            if not profile_check.data:
+                # Create profile with organization
+                supabase.table("profiles").insert({
+                    "user_id": user_id,
+                    "username": user.email,
+                    "display_name": user.email.split("@")[0] if user.email else "User",
+                    "organization_id": org_id,
+                    "organization_name": data.name,
+                    "role": "Admin",
+                    "created_at": datetime.utcnow().isoformat(),
+                    "updated_at": datetime.utcnow().isoformat()
+                }).execute()
+            else:
+                # Update existing profile
+                supabase.table("profiles").update({
+                    "organization_id": org_id,
+                    "organization_name": data.name,
+                    "role": "Admin",
+                    "updated_at": datetime.utcnow().isoformat()
+                }).eq("user_id", user_id).execute()
             
             # Create default ITSM configuration
             default_slas = [
@@ -959,11 +976,28 @@ async def join_organization(slug: str, user = Depends(get_current_user)):
             raise HTTPException(status_code=404, detail="Organization not found")
         
         org_data = org.data[0]
-        supabase.table("profiles").update({
-            "organization_id": org_data["id"],
-            "organization_name": org_data["name"],
-            "updated_at": datetime.utcnow().isoformat()
-        }).eq("user_id", user_id).execute()
+        
+        # Check if profile exists, create if not
+        profile_check = supabase.table("profiles").select("user_id").eq("user_id", user_id).execute()
+        if not profile_check.data:
+            # Create profile with organization
+            supabase.table("profiles").insert({
+                "user_id": user_id,
+                "username": user.email,
+                "display_name": user.email.split("@")[0] if user.email else "User",
+                "organization_id": org_data["id"],
+                "organization_name": org_data["name"],
+                "role": "Agent",
+                "created_at": datetime.utcnow().isoformat(),
+                "updated_at": datetime.utcnow().isoformat()
+            }).execute()
+        else:
+            # Update existing profile
+            supabase.table("profiles").update({
+                "organization_id": org_data["id"],
+                "organization_name": org_data["name"],
+                "updated_at": datetime.utcnow().isoformat()
+            }).eq("user_id", user_id).execute()
         
         return db_to_organization(org_data)
     except HTTPException:
