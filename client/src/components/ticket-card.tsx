@@ -352,42 +352,46 @@ export function TicketCard({
         </div>
       </div>
 
-      {/* Center Info */}
-      <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-        <div className="text-center px-8 max-w-md pointer-events-auto">
-          {/* Requester Info */}
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <Avatar className="w-12 h-12 border-2 border-primary">
-              <AvatarImage src={ticket.requesterAvatar || undefined} />
-              <AvatarFallback className="bg-primary text-primary-foreground text-sm">
-                {getInitials(ticket.requesterName)}
-              </AvatarFallback>
-            </Avatar>
-            <div className="text-left">
-              <p className="font-semibold text-white text-sm" data-testid={`text-requester-${ticket.id}`}>
-                @{ticket.requesterName.toLowerCase().replace(/\s/g, '_')}
-              </p>
-              {ticket.assetName && (
-                <p className="text-xs text-white/60">{ticket.assetName}</p>
-              )}
-            </div>
+      {/* Bottom Left Info - Requester & Title */}
+      <div className="absolute bottom-0 left-0 right-20 p-4 z-10">
+        {/* Requester Info */}
+        <div className="flex items-center gap-3 mb-3">
+          <Avatar className="w-10 h-10 border-2 border-primary">
+            <AvatarImage src={ticket.requesterAvatar || undefined} />
+            <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+              {getInitials(ticket.requesterName)}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <p className="font-semibold text-white text-sm" data-testid={`text-requester-${ticket.id}`}>
+              @{ticket.requesterName.toLowerCase().replace(/\s/g, '_')}
+            </p>
+            {ticket.assetName && (
+              <p className="text-xs text-white/60">{ticket.assetName}</p>
+            )}
           </div>
+        </div>
 
-          {/* Ticket Title & Description */}
-          <h3 className="font-bold text-white text-xl mb-2" data-testid={`text-title-${ticket.id}`}>
-            {ticket.title}
-          </h3>
-          <p className="text-white/80 text-sm line-clamp-3" data-testid={`text-description-${ticket.id}`}>
+        {/* Ticket Title */}
+        <h3 className="font-bold text-white text-lg mb-1 line-clamp-2" data-testid={`text-title-${ticket.id}`}>
+          {ticket.title}
+        </h3>
+
+        {/* Asset Tag */}
+        {ticket.assetTag && (
+          <div className="mt-2 flex items-center gap-2 text-xs text-white/60">
+            <Monitor className="w-3 h-3" />
+            <span>Asset: {ticket.assetTag}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Center Description */}
+      <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+        <div className="text-center px-12 max-w-lg">
+          <p className="text-white/90 text-base" data-testid={`text-description-${ticket.id}`}>
             {ticket.description}
           </p>
-
-          {/* Asset Tag */}
-          {ticket.assetTag && (
-            <div className="mt-3 flex items-center justify-center gap-2 text-xs text-white/60">
-              <Monitor className="w-3 h-3" />
-              <span>Asset: {ticket.assetTag}</span>
-            </div>
-          )}
         </div>
       </div>
 
