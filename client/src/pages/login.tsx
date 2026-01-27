@@ -7,13 +7,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Play, Loader2 } from 'lucide-react';
+import { SiGoogle, SiGithub } from 'react-icons/si';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState<string | null>(null);
   const [isSignUp, setIsSignUp] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, signInWithOAuth } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -33,14 +35,7 @@ export default function Login() {
           variant: "destructive",
         });
       } else {
-        if (isSignUp) {
-          toast({
-            title: "Account Created",
-            description: "Check your email to verify your account.",
-          });
-        } else {
-          setLocation('/');
-        }
+        setLocation('/');
       }
     } catch (err) {
       toast({
@@ -50,6 +45,28 @@ export default function Login() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleOAuthSignIn = async (provider: 'google' | 'github') => {
+    setOauthLoading(provider);
+    try {
+      const { error } = await signInWithOAuth(provider);
+      if (error) {
+        toast({
+          title: "Authentication Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setOauthLoading(null);
     }
   };
 
@@ -67,7 +84,45 @@ export default function Login() {
             {isSignUp ? 'Create your agent account' : 'Sign in to your agent account'}
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              variant="outline"
+              onClick={() => handleOAuthSignIn('google')}
+              disabled={oauthLoading !== null}
+              data-testid="button-google-signin"
+            >
+              {oauthLoading === 'google' ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <SiGoogle className="w-4 h-4" />
+              )}
+              <span className="ml-2">Google</span>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => handleOAuthSignIn('github')}
+              disabled={oauthLoading !== null}
+              data-testid="button-github-signin"
+            >
+              {oauthLoading === 'github' ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <SiGithub className="w-4 h-4" />
+              )}
+              <span className="ml-2">GitHub</span>
+            </Button>
+          </div>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">Or continue with email</span>
+            </div>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -97,7 +152,7 @@ export default function Login() {
             <Button 
               type="submit" 
               className="w-full" 
-              disabled={isLoading}
+              disabled={isLoading || oauthLoading !== null}
               data-testid="button-submit"
             >
               {isLoading ? (
@@ -110,11 +165,12 @@ export default function Login() {
               )}
             </Button>
           </form>
-          <div className="mt-4 text-center">
+          <div className="text-center">
             <Button
-              variant="link"
+              variant="ghost"
               onClick={() => setIsSignUp(!isSignUp)}
               data-testid="button-toggle-auth"
+              className="text-muted-foreground hover:text-foreground"
             >
               {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
             </Button>
