@@ -104,6 +104,29 @@ class KnowledgeVideoCreate(BaseModel):
     category: str
     videoUrl: str
 
+class PriorityConfigCreate(BaseModel):
+    name: str
+    level: int
+    color: str
+    basePoints: int
+    responseTimeMinutes: int
+    resolutionTimeMinutes: int
+
+class PriorityConfigUpdate(BaseModel):
+    name: Optional[str] = None
+    level: Optional[int] = None
+    color: Optional[str] = None
+    basePoints: Optional[int] = None
+    responseTimeMinutes: Optional[int] = None
+    resolutionTimeMinutes: Optional[int] = None
+
+class CategoryUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    icon: Optional[str] = None
+    isActive: Optional[bool] = None
+    bonusPoints: Optional[int] = None
+
 def db_to_ticket(row: dict) -> dict:
     return {
         "id": str(row["id"]),
@@ -186,7 +209,8 @@ def db_to_category(row: dict) -> dict:
         "name": row["name"],
         "description": row.get("description"),
         "icon": row.get("icon"),
-        "isActive": row.get("is_active", True)
+        "isActive": row.get("is_active", True),
+        "bonusPoints": row.get("bonus_points", 0)
     }
 
 def db_to_post(row: dict) -> dict:
@@ -408,13 +432,27 @@ async def resolve_ticket(ticket_id: str, user = Depends(get_current_user)):
     bounty_coins = ticket.get("bounty_amount", 0) if ticket.get("has_bounty") else 0
     org_id = get_user_organization_id(user_id) if user else None
     
+    base_points = 25
+    ticket_priority = ticket.get("priority", "medium")
+    if org_id:
+        try:
+            priority_result = supabase.table("priority_configs")\
+                .select("base_points")\
+                .eq("organization_id", org_id)\
+                .ilike("name", ticket_priority)\
+                .execute()
+            if priority_result.data:
+                base_points = priority_result.data[0].get("base_points", 25)
+        except Exception as e:
+            print(f"Get priority config error: {e}")
+    
     stats_result = supabase.table("agent_stats").select("*").eq("agent_id", user_id).execute()
     if stats_result.data:
         current_stats = stats_result.data[0]
         update_stats = {
             "tickets_resolved": current_stats["tickets_resolved"] + 1,
             "streak": current_stats["streak"] + 1,
-            "coins": current_stats["coins"] + 25 + bounty_coins,
+            "coins": current_stats["coins"] + base_points + bounty_coins,
             "updated_at": now
         }
         if org_id and not current_stats.get("organization_id"):
@@ -430,7 +468,7 @@ async def resolve_ticket(ticket_id: str, user = Depends(get_current_user)):
             "tickets_assigned": 0,
             "tickets_resolved": 1,
             "streak": 1,
-            "coins": 25 + bounty_coins
+            "coins": base_points + bounty_coins
         }
         if org_id:
             new_stats["organization_id"] = org_id
@@ -1126,6 +1164,234 @@ async def create_category(data: CategoryCreate, user = Depends(get_current_user)
         raise
     except Exception as e:
         print(f"Create category error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/mcp/config/priorities")
+async def get_priority_configs(user = Depends(get_current_user)):
+    supabase = get_supabase()
+    user_id = user.id if user else None
+    if not user_id:
+        return []
+    
+    try:
+        profile = supabase.table("profiles").select("organization_id").eq("user_id", user_id).execute()
+        if not profile.data or not profile.data[0].get("organization_id"):
+            return []
+        
+        org_id = profile.data[0]["organization_id"]
+        result = supabase.table("priority_configs").select("*").eq("organization_id", org_id).order("level").execute()
+        priorities = []
+        for row in result.data:
+            priorities.append({
+                "id": str(row["id"]),
+                "name": row.get("name", ""),
+                "level": row.get("level", 0),
+                "color": row.get("color", "#gray"),
+                "basePoints": row.get("base_points", 25),
+                "responseTimeMinutes": row.get("response_time_minutes", 60),
+                "resolutionTimeMinutes": row.get("resolution_time_minutes", 480),
+            })
+        return priorities
+    except Exception as e:
+        print(f"Get priority configs error: {e}")
+        return []
+
+@app.post("/mcp/config/priorities")
+async def create_priority_config(data: PriorityConfigCreate, user = Depends(get_current_user)):
+    supabase = get_supabase()
+    user_id = user.id if user else None
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    try:
+        profile = supabase.table("profiles").select("organization_id, role").eq("user_id", user_id).execute()
+        if not profile.data or not profile.data[0].get("organization_id"):
+            raise HTTPException(status_code=404, detail="No organization found")
+        
+        org_id = profile.data[0]["organization_id"]
+        import uuid
+        new_priority = {
+            "id": str(uuid.uuid4()),
+            "organization_id": org_id,
+            "name": data.name,
+            "level": data.level,
+            "color": data.color,
+            "base_points": data.basePoints,
+            "response_time_minutes": data.responseTimeMinutes,
+            "resolution_time_minutes": data.resolutionTimeMinutes,
+        }
+        result = supabase.table("priority_configs").insert(new_priority).execute()
+        if result.data:
+            row = result.data[0]
+            return {
+                "id": str(row["id"]),
+                "name": row.get("name", ""),
+                "level": row.get("level", 0),
+                "color": row.get("color", "#gray"),
+                "basePoints": row.get("base_points", 25),
+                "responseTimeMinutes": row.get("response_time_minutes", 60),
+                "resolutionTimeMinutes": row.get("resolution_time_minutes", 480),
+            }
+        raise HTTPException(status_code=400, detail="Failed to create priority")
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Create priority error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.put("/mcp/config/priorities/{priority_id}")
+async def update_priority_config(priority_id: str, data: PriorityConfigUpdate, user = Depends(get_current_user)):
+    supabase = get_supabase()
+    user_id = user.id if user else None
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    try:
+        profile = supabase.table("profiles").select("organization_id, role").eq("user_id", user_id).execute()
+        if not profile.data or not profile.data[0].get("organization_id"):
+            raise HTTPException(status_code=404, detail="No organization found")
+        
+        role = profile.data[0].get("role", "Agent")
+        if role not in ["Admin", "Manager"]:
+            raise HTTPException(status_code=403, detail="Only Admin or Manager can update priorities")
+        
+        org_id = profile.data[0]["organization_id"]
+        priority = supabase.table("priority_configs").select("organization_id").eq("id", priority_id).execute()
+        if not priority.data or priority.data[0].get("organization_id") != org_id:
+            raise HTTPException(status_code=403, detail="Not authorized to update this priority")
+        
+        update_data = {}
+        if data.name is not None:
+            update_data["name"] = data.name
+        if data.level is not None:
+            update_data["level"] = data.level
+        if data.color is not None:
+            update_data["color"] = data.color
+        if data.basePoints is not None:
+            update_data["base_points"] = data.basePoints
+        if data.responseTimeMinutes is not None:
+            update_data["response_time_minutes"] = data.responseTimeMinutes
+        if data.resolutionTimeMinutes is not None:
+            update_data["resolution_time_minutes"] = data.resolutionTimeMinutes
+        
+        result = supabase.table("priority_configs").update(update_data).eq("id", priority_id).execute()
+        if result.data:
+            row = result.data[0]
+            return {
+                "id": str(row["id"]),
+                "name": row.get("name", ""),
+                "level": row.get("level", 0),
+                "color": row.get("color", "#gray"),
+                "basePoints": row.get("base_points", 25),
+                "responseTimeMinutes": row.get("response_time_minutes", 60),
+                "resolutionTimeMinutes": row.get("resolution_time_minutes", 480),
+            }
+        raise HTTPException(status_code=404, detail="Priority not found")
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Update priority error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.delete("/mcp/config/priorities/{priority_id}")
+async def delete_priority_config(priority_id: str, user = Depends(get_current_user)):
+    supabase = get_supabase()
+    user_id = user.id if user else None
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    try:
+        profile = supabase.table("profiles").select("organization_id, role").eq("user_id", user_id).execute()
+        if not profile.data or not profile.data[0].get("organization_id"):
+            raise HTTPException(status_code=404, detail="No organization found")
+        
+        role = profile.data[0].get("role", "Agent")
+        if role not in ["Admin", "Manager"]:
+            raise HTTPException(status_code=403, detail="Only Admin or Manager can delete priorities")
+        
+        org_id = profile.data[0]["organization_id"]
+        priority = supabase.table("priority_configs").select("organization_id").eq("id", priority_id).execute()
+        if not priority.data or priority.data[0].get("organization_id") != org_id:
+            raise HTTPException(status_code=403, detail="Not authorized to delete this priority")
+        
+        supabase.table("priority_configs").delete().eq("id", priority_id).execute()
+        return {"success": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Delete priority error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.put("/mcp/config/categories/{category_id}")
+async def update_category(category_id: str, data: CategoryUpdate, user = Depends(get_current_user)):
+    supabase = get_supabase()
+    user_id = user.id if user else None
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    try:
+        profile = supabase.table("profiles").select("organization_id, role").eq("user_id", user_id).execute()
+        if not profile.data or not profile.data[0].get("organization_id"):
+            raise HTTPException(status_code=404, detail="No organization found")
+        
+        role = profile.data[0].get("role", "Agent")
+        if role not in ["Admin", "Manager"]:
+            raise HTTPException(status_code=403, detail="Only Admin or Manager can update categories")
+        
+        org_id = profile.data[0]["organization_id"]
+        category = supabase.table("ticket_categories").select("organization_id").eq("id", category_id).execute()
+        if not category.data or category.data[0].get("organization_id") != org_id:
+            raise HTTPException(status_code=403, detail="Not authorized to update this category")
+        
+        update_data = {}
+        if data.name is not None:
+            update_data["name"] = data.name
+        if data.description is not None:
+            update_data["description"] = data.description
+        if data.icon is not None:
+            update_data["icon"] = data.icon
+        if data.isActive is not None:
+            update_data["is_active"] = data.isActive
+        if data.bonusPoints is not None:
+            update_data["bonus_points"] = data.bonusPoints
+        
+        result = supabase.table("ticket_categories").update(update_data).eq("id", category_id).execute()
+        if result.data:
+            return db_to_category(result.data[0])
+        raise HTTPException(status_code=404, detail="Category not found")
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Update category error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.delete("/mcp/config/categories/{category_id}")
+async def delete_category(category_id: str, user = Depends(get_current_user)):
+    supabase = get_supabase()
+    user_id = user.id if user else None
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    try:
+        profile = supabase.table("profiles").select("organization_id, role").eq("user_id", user_id).execute()
+        if not profile.data or not profile.data[0].get("organization_id"):
+            raise HTTPException(status_code=404, detail="No organization found")
+        
+        role = profile.data[0].get("role", "Agent")
+        if role not in ["Admin", "Manager"]:
+            raise HTTPException(status_code=403, detail="Only Admin or Manager can delete categories")
+        
+        org_id = profile.data[0]["organization_id"]
+        category = supabase.table("ticket_categories").select("organization_id").eq("id", category_id).execute()
+        if not category.data or category.data[0].get("organization_id") != org_id:
+            raise HTTPException(status_code=403, detail="Not authorized to delete this category")
+        
+        supabase.table("ticket_categories").delete().eq("id", category_id).execute()
+        return {"success": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Delete category error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/mcp/knowledge/videos")

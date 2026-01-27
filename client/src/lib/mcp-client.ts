@@ -114,6 +114,16 @@ export const mcpClient = {
   
   getCategories: () => mcpRequest('GET', '/config/categories'),
   createCategory: (data: CreateCategoryData) => mcpRequest('POST', '/config/categories', data),
+  updateCategory: (id: string, data: Partial<CreateCategoryData & { bonusPoints?: number }>) => 
+    mcpRequest('PUT', `/config/categories/${id}`, data),
+  deleteCategory: (id: string) => mcpRequest('DELETE', `/config/categories/${id}`),
+  
+  getPriorities: () => mcpRequest('GET', '/config/priorities'),
+  createPriority: (data: { name: string; level: number; color: string; basePoints: number; responseTimeMinutes: number; resolutionTimeMinutes: number }) =>
+    mcpRequest('POST', '/config/priorities', data),
+  updatePriority: (id: string, data: Partial<{ name: string; level: number; color: string; basePoints: number; responseTimeMinutes: number; resolutionTimeMinutes: number }>) =>
+    mcpRequest('PUT', `/config/priorities/${id}`, data),
+  deletePriority: (id: string) => mcpRequest('DELETE', `/config/priorities/${id}`),
   
   getPosts: (userId?: string) => mcpRequest('GET', userId ? `/posts?user_id=${userId}` : '/posts'),
   createPost: (data: CreatePostData) => mcpRequest('POST', '/posts', data),

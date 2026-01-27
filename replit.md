@@ -172,6 +172,29 @@ ALTER TABLE knowledge_videos ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view org videos" ON knowledge_videos FOR SELECT USING (true);
 CREATE POLICY "Users can insert videos" ON knowledge_videos FOR INSERT WITH CHECK (true);
 
+-- Priority Configs table for customizable priorities with point values
+CREATE TABLE priority_configs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id UUID NOT NULL REFERENCES organizations(id),
+  name TEXT NOT NULL,
+  level INTEGER NOT NULL DEFAULT 1,
+  color TEXT DEFAULT '#gray',
+  base_points INTEGER DEFAULT 25,
+  response_time_minutes INTEGER DEFAULT 60,
+  resolution_time_minutes INTEGER DEFAULT 480,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable RLS for priority_configs
+ALTER TABLE priority_configs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view org priorities" ON priority_configs FOR SELECT USING (true);
+CREATE POLICY "Users can insert priorities" ON priority_configs FOR INSERT WITH CHECK (true);
+CREATE POLICY "Users can update priorities" ON priority_configs FOR UPDATE USING (true);
+CREATE POLICY "Users can delete priorities" ON priority_configs FOR DELETE USING (true);
+
+-- Add bonus_points to ticket_categories
+ALTER TABLE ticket_categories ADD COLUMN IF NOT EXISTS bonus_points INTEGER DEFAULT 0;
+
 -- Enable RLS for organizations
 ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sla_policies ENABLE ROW LEVEL SECURITY;
@@ -190,6 +213,10 @@ CREATE POLICY "Users can insert categories" ON ticket_categories FOR INSERT WITH
 ```
 
 ## Recent Changes
+- Added configurable priorities with custom point values per organization
+- Added editable priorities and categories UI in settings page
+- Resolve ticket now uses org's configured point values for the ticket priority
+- Added priority_configs table for customizable priorities
 - Added video upload to knowledge base using Replit Object Storage
 - Added organization list management in settings page
 - Added knowledge_videos table and MCP endpoints for video CRUD
