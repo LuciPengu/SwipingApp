@@ -210,9 +210,32 @@ CREATE POLICY "Users can insert SLA policies" ON sla_policies FOR INSERT WITH CH
 
 CREATE POLICY "Users can view org categories" ON ticket_categories FOR SELECT USING (true);
 CREATE POLICY "Users can insert categories" ON ticket_categories FOR INSERT WITH CHECK (true);
+
+-- Activity Events table for activity wall/feed
+CREATE TABLE activity_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_type TEXT NOT NULL,
+  user_id UUID,
+  user_name TEXT,
+  user_avatar TEXT,
+  organization_id UUID REFERENCES organizations(id),
+  message TEXT NOT NULL,
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable RLS for activity_events
+ALTER TABLE activity_events ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view org events" ON activity_events FOR SELECT USING (true);
+CREATE POLICY "System can insert events" ON activity_events FOR INSERT WITH CHECK (true);
+
+-- Index for faster queries
+CREATE INDEX idx_activity_events_org_created ON activity_events(organization_id, created_at DESC);
 ```
 
 ## Recent Changes
+- Added activity wall/feed showing points earned, tickets resolved, and team activity
+- Added ticket filtering and sorting (priority, category, search, sort by date/SLA/priority)
 - Added configurable priorities with custom point values per organization
 - Added editable priorities and categories UI in settings page
 - Resolve ticket now uses org's configured point values for the ticket priority

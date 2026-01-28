@@ -299,7 +299,14 @@ async def get_feed(user = Depends(get_current_user)):
         return []
 
 @app.get("/mcp/tickets/queue")
-async def get_queue(user = Depends(get_current_user)):
+async def get_queue(
+    priority: Optional[str] = None,
+    category: Optional[str] = None,
+    search: Optional[str] = None,
+    sort_by: Optional[str] = "created_at",
+    sort_order: Optional[str] = "desc",
+    user = Depends(get_current_user)
+):
     supabase = get_supabase()
     user_id = user.id if user else "default"
     org_id = get_user_organization_id(user_id) if user else None
@@ -311,6 +318,20 @@ async def get_queue(user = Depends(get_current_user)):
     
     if org_id:
         query = query.eq("organization_id", org_id)
+    
+    if priority:
+        query = query.eq("priority", priority)
+    
+    if category:
+        query = query.eq("category", category)
+    
+    if search:
+        query = query.or_(f"title.ilike.%{search}%,description.ilike.%{search}%")
+    
+    if sort_by in ["created_at", "priority", "sla_deadline", "title"]:
+        query = query.order(sort_by, desc=(sort_order == "desc"))
+    else:
+        query = query.order("created_at", desc=True)
     
     result = query.execute()
     return [db_to_ticket(row) for row in result.data]
@@ -475,6 +496,25 @@ async def resolve_ticket(ticket_id: str, user = Depends(get_current_user)):
         supabase.table("agent_stats").insert(new_stats).execute()
     
     if update_result.data:
+        total_points = base_points + bounty_coins
+        profile = None
+        try:
+            profile_result = supabase.table("profiles").select("avatar_url").eq("user_id", user_id).execute()
+            if profile_result.data:
+                profile = profile_result.data[0]
+        except:
+            pass
+        user_avatar = profile.get("avatar_url") if profile else None
+        create_activity_event(
+            supabase,
+            event_type="ticket_resolved",
+            user_id=user_id,
+            user_name=user_name.split('@')[0] if '@' in user_name else user_name,
+            user_avatar=user_avatar,
+            org_id=org_id,
+            message=f"resolved a ticket and earned {total_points} points",
+            metadata={"points": total_points, "ticketId": ticket_id, "ticketTitle": ticket.get("title", "")}
+        )
         return db_to_ticket(update_result.data[0])
     raise HTTPException(status_code=500, detail="Failed to resolve ticket")
 
@@ -806,6 +846,25 @@ async def create_post(post: PostCreate, user = Depends(get_current_user)):
     
     result = supabase.table("posts").insert(new_post).execute()
     if result.data:
+        profile = None
+        try:
+            profile_result = supabase.table("profiles").select("avatar_url").eq("user_id", user_id).execute()
+            if profile_result.data:
+                profile = profile_result.data[0]
+        except:
+            pass
+        user_avatar = profile.get("avatar_url") if profile else None
+        display_name = user_name.split('@')[0] if '@' in user_name else user_name
+        create_activity_event(
+            supabase,
+            event_type="post_created",
+            user_id=user_id,
+            user_name=display_name,
+            user_avatar=user_avatar,
+            org_id=org_id,
+            message="shared a new post",
+            metadata={"postId": result.data[0].get("id")}
+        )
         return db_to_post(result.data[0])
     raise HTTPException(status_code=500, detail="Failed to create post")
 
@@ -1498,6 +1557,52 @@ async def get_all_organizations(user = Depends(get_current_user)):
     except Exception as e:
         print(f"Get organizations error: {e}")
         return []
+
+@app.get("/mcp/activity/events")
+async def get_activity_events(limit: int = 50, user = Depends(get_current_user)):
+    supabase = get_supabase()
+    user_id = user.id if user else None
+    org_id = get_user_organization_id(user_id) if user_id else None
+    
+    try:
+        query = supabase.table("activity_events").select("*").order("created_at", desc=True).limit(limit)
+        if org_id:
+            query = query.eq("organization_id", org_id)
+        result = query.execute()
+        
+        events = []
+        for row in result.data:
+            events.append({
+                "id": str(row["id"]),
+                "type": row.get("event_type", "points_earned"),
+                "userId": row.get("user_id"),
+                "userName": row.get("user_name", "Agent"),
+                "userAvatar": row.get("user_avatar"),
+                "organizationId": row.get("organization_id"),
+                "message": row.get("message", ""),
+                "metadata": row.get("metadata", {}),
+                "createdAt": str(row.get("created_at", ""))
+            })
+        return events
+    except Exception as e:
+        print(f"Get activity events error: {e}")
+        return []
+
+def create_activity_event(supabase, event_type: str, user_id: str, user_name: str, user_avatar: str, org_id: str, message: str, metadata: dict = None):
+    try:
+        event_data = {
+            "event_type": event_type,
+            "user_id": user_id,
+            "user_name": user_name,
+            "user_avatar": user_avatar,
+            "organization_id": org_id,
+            "message": message,
+            "metadata": metadata or {},
+            "created_at": datetime.utcnow().isoformat()
+        }
+        supabase.table("activity_events").insert(event_data).execute()
+    except Exception as e:
+        print(f"Create activity event error: {e}")
 
 @app.get("/mcp/health")
 async def health_check():

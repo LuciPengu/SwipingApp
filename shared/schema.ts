@@ -213,3 +213,37 @@ export const createActivitySchema = z.object({
 });
 
 export type CreateActivityInput = z.infer<typeof createActivitySchema>;
+
+// Activity event types for the activity wall
+export const activityEventTypes = [
+  "points_earned",
+  "ticket_resolved", 
+  "ticket_escalated",
+  "streak_achieved",
+  "leaderboard_change",
+  "badge_earned",
+  "post_created"
+] as const;
+
+export type ActivityEventType = typeof activityEventTypes[number];
+
+// Activity event for the scrolling wall
+export interface ActivityEvent {
+  id: string;
+  type: ActivityEventType;
+  userId: string;
+  userName: string;
+  userAvatar?: string | null;
+  organizationId?: string;
+  message: string;
+  metadata?: {
+    points?: number;
+    ticketId?: string;
+    ticketTitle?: string;
+    newRank?: number;
+    oldRank?: number;
+    streakCount?: number;
+    badgeName?: string;
+  };
+  createdAt: string;
+}

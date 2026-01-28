@@ -81,10 +81,27 @@ export interface CreateCategoryData {
   isActive?: boolean;
 }
 
+export interface QueueFilters {
+  priority?: string;
+  category?: string;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
 export const mcpClient = {
   getFeed: () => mcpRequest('GET', '/tickets/feed'),
   getMixedFeed: () => mcpRequest('GET', '/feed/mixed'),
-  getQueue: () => mcpRequest('GET', '/tickets/queue'),
+  getQueue: (filters?: QueueFilters) => {
+    const params = new URLSearchParams();
+    if (filters?.priority) params.set('priority', filters.priority);
+    if (filters?.category) params.set('category', filters.category);
+    if (filters?.search) params.set('search', filters.search);
+    if (filters?.sortBy) params.set('sort_by', filters.sortBy);
+    if (filters?.sortOrder) params.set('sort_order', filters.sortOrder);
+    const queryString = params.toString();
+    return mcpRequest('GET', `/tickets/queue${queryString ? `?${queryString}` : ''}`);
+  },
   getResolved: () => mcpRequest('GET', '/tickets/resolved'),
   getEscalated: () => mcpRequest('GET', '/tickets/escalated'),
   createTicket: (data: CreateTicketData) => mcpRequest('POST', '/tickets', data),
@@ -137,4 +154,7 @@ export const mcpClient = {
     mcpRequest('POST', '/knowledge/videos', data),
   
   getAllOrganizations: () => mcpRequest('GET', '/organizations'),
+  
+  getActivityEvents: (limit?: number) => 
+    mcpRequest('GET', `/activity/events${limit ? `?limit=${limit}` : ''}`),
 };

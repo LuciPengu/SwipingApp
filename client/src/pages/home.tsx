@@ -1,6 +1,7 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { MixedFeed } from "@/components/mixed-feed";
 import { AgentStats } from "@/components/agent-stats";
+import { ActivityWall } from "@/components/activity-wall";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import { mcpClient } from "@/lib/mcp-client";
@@ -124,6 +125,10 @@ export default function Home() {
           stats={stats || defaultStats} 
           isLoading={statsLoading}
         />
+        
+        <div className="mt-6">
+          <ActivityWall limit={15} />
+        </div>
       </div>
     </div>
   );
