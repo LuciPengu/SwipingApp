@@ -50,8 +50,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({ email, password });
-    return { error: error ? new Error(error.message) : null };
+    const { data, error } = await supabase.auth.signUp({ 
+      email, 
+      password,
+      options: {
+        emailRedirectTo: window.location.origin,
+      }
+    });
+    
+    if (error) {
+      return { error: new Error(error.message) };
+    }
+    
+    // If user is returned but session is null, email confirmation might still be required
+    // Try to sign in immediately after signup
+    if (data.user && !data.session) {
+      const signInResult = await supabase.auth.signInWithPassword({ email, password });
+      if (signInResult.error) {
+        // If sign-in fails, it might be due to email confirmation
+        // Return a more helpful message
+        if (signInResult.error.message.includes('Email not confirmed')) {
+          return { error: new Error('Account created! Please check your email to confirm, or ask your admin to disable email confirmation in Supabase.') };
+        }
+        return { error: new Error(signInResult.error.message) };
+      }
+    }
+    
+    return { error: null };
   };
 
   const signInWithOAuth = async (provider: Provider) => {
