@@ -1558,6 +1558,97 @@ async def get_all_organizations(user = Depends(get_current_user)):
         print(f"Get organizations error: {e}")
         return []
 
+class UpdateMemberRole(BaseModel):
+    role: str
+
+@app.get("/mcp/organizations/members")
+async def get_organization_members(user = Depends(get_current_user)):
+    supabase = get_supabase()
+    user_id = user.id if user else None
+    org_id = get_user_organization_id(user_id) if user_id else None
+    
+    if not org_id:
+        return []
+    
+    try:
+        result = supabase.table("profiles").select("user_id, display_name, avatar_url, role, organization_id, organization_name").eq("organization_id", org_id).execute()
+        members = []
+        for row in result.data:
+            members.append({
+                "id": str(row.get("user_id", "")),
+                "displayName": row.get("display_name", "Unknown"),
+                "avatarUrl": row.get("avatar_url"),
+                "role": row.get("role", "Agent"),
+                "organizationId": row.get("organization_id"),
+            })
+        return members
+    except Exception as e:
+        print(f"Get org members error: {e}")
+        return []
+
+@app.put("/mcp/organizations/members/{member_id}/role")
+async def update_member_role(member_id: str, data: UpdateMemberRole, user = Depends(get_current_user)):
+    supabase = get_supabase()
+    user_id = user.id if user else None
+    org_id = get_user_organization_id(user_id) if user_id else None
+    
+    if not user_id or not org_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    try:
+        profile = supabase.table("profiles").select("role, organization_id").eq("user_id", user_id).execute()
+        if not profile.data or profile.data[0].get("role") not in ["Admin", "Manager"]:
+            raise HTTPException(status_code=403, detail="Admin or Manager role required")
+        
+        target = supabase.table("profiles").select("organization_id").eq("user_id", member_id).execute()
+        if not target.data or target.data[0].get("organization_id") != org_id:
+            raise HTTPException(status_code=404, detail="Member not found in your organization")
+        
+        valid_roles = ["Admin", "Manager", "Agent"]
+        if data.role not in valid_roles:
+            raise HTTPException(status_code=400, detail=f"Invalid role. Must be one of: {', '.join(valid_roles)}")
+        
+        supabase.table("profiles").update({"role": data.role}).eq("user_id", member_id).execute()
+        return {"success": True, "message": f"Role updated to {data.role}"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Update member role error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update role")
+
+@app.delete("/mcp/organizations/members/{member_id}")
+async def remove_member_from_org(member_id: str, user = Depends(get_current_user)):
+    supabase = get_supabase()
+    user_id = user.id if user else None
+    org_id = get_user_organization_id(user_id) if user_id else None
+    
+    if not user_id or not org_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    try:
+        profile = supabase.table("profiles").select("role").eq("user_id", user_id).execute()
+        if not profile.data or profile.data[0].get("role") not in ["Admin"]:
+            raise HTTPException(status_code=403, detail="Admin role required to remove members")
+        
+        if member_id == user_id:
+            raise HTTPException(status_code=400, detail="Cannot remove yourself from the organization")
+        
+        target = supabase.table("profiles").select("organization_id").eq("user_id", member_id).execute()
+        if not target.data or target.data[0].get("organization_id") != org_id:
+            raise HTTPException(status_code=404, detail="Member not found in your organization")
+        
+        supabase.table("profiles").update({
+            "organization_id": None,
+            "organization_name": None,
+            "role": "Agent"
+        }).eq("user_id", member_id).execute()
+        return {"success": True, "message": "Member removed from organization"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Remove member error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to remove member")
+
 @app.get("/mcp/activity/events")
 async def get_activity_events(limit: int = 50, user = Depends(get_current_user)):
     supabase = get_supabase()

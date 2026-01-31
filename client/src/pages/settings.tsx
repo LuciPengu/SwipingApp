@@ -46,6 +46,20 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import type { Organization, SlaPolicy, TicketCategory } from "@shared/schema";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+interface OrgMember {
+  id: string;
+  displayName: string;
+  avatarUrl?: string;
+  role: string;
+}
 
 interface OrganizationListItem {
   id: string;
@@ -111,6 +125,34 @@ export default function Settings() {
   const { data: allOrganizations = [], isLoading: orgsLoading } = useQuery({
     queryKey: ['/mcp/organizations'],
     queryFn: () => mcpClient.getAllOrganizations() as Promise<OrganizationListItem[]>,
+  });
+
+  const { data: members = [], isLoading: membersLoading } = useQuery({
+    queryKey: ['/mcp/organizations/members'],
+    queryFn: () => mcpClient.getOrganizationMembers() as Promise<OrgMember[]>,
+  });
+
+  const updateRoleMutation = useMutation({
+    mutationFn: ({ memberId, role }: { memberId: string; role: string }) =>
+      mcpClient.updateMemberRole(memberId, role),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/mcp/organizations/members'] });
+      toast({ title: "Role updated" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to update role", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const removeMemberMutation = useMutation({
+    mutationFn: (memberId: string) => mcpClient.removeMember(memberId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/mcp/organizations/members'] });
+      toast({ title: "Member removed" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to remove member", description: error.message, variant: "destructive" });
+    },
   });
 
   const priorityForm = useForm<PriorityFormData>({
@@ -343,6 +385,70 @@ export default function Settings() {
               </Button>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="w-5 h-5" />
+            Team Members
+          </CardTitle>
+          <CardDescription>Manage team members and their roles</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {membersLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </div>
+          ) : members.length === 0 ? (
+            <p className="text-muted-foreground text-center py-4">No team members found</p>
+          ) : (
+            <ScrollArea className="h-[300px]">
+              <div className="space-y-2">
+                {members.map((member) => (
+                  <div key={member.id} className="flex items-center justify-between p-3 rounded-lg border" data-testid={`member-${member.id}`}>
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-10 w-10">
+                        {member.avatarUrl && <AvatarImage src={member.avatarUrl} alt={member.displayName} />}
+                        <AvatarFallback>{member.displayName.charAt(0).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-medium">{member.displayName}</p>
+                        <p className="text-sm text-muted-foreground">Current role: {member.role}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Select
+                        value={member.role}
+                        onValueChange={(role) => updateRoleMutation.mutate({ memberId: member.id, role })}
+                        disabled={updateRoleMutation.isPending}
+                      >
+                        <SelectTrigger className="w-28" data-testid={`select-role-${member.id}`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Admin">Admin</SelectItem>
+                          <SelectItem value="Manager">Manager</SelectItem>
+                          <SelectItem value="Agent">Agent</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeMemberMutation.mutate(member.id)}
+                        disabled={removeMemberMutation.isPending}
+                        data-testid={`button-remove-member-${member.id}`}
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          )}
         </CardContent>
       </Card>
 

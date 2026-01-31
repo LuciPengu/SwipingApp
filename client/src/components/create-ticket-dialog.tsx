@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -25,6 +25,30 @@ import { Plus, Loader2 } from "lucide-react";
 import { mcpClient, CreateTicketData } from "@/lib/mcp-client";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import type { TicketCategory } from "@shared/schema";
+
+interface PriorityConfig {
+  id: string;
+  name: string;
+  level: number;
+  color: string;
+  basePoints: number;
+}
+
+const defaultPriorities = [
+  { id: "low", name: "Low", level: 1, color: "#22c55e", basePoints: 10 },
+  { id: "medium", name: "Medium", level: 2, color: "#eab308", basePoints: 25 },
+  { id: "high", name: "High", level: 3, color: "#f97316", basePoints: 50 },
+  { id: "critical", name: "Critical", level: 4, color: "#ef4444", basePoints: 100 },
+];
+
+const defaultCategories = [
+  { id: "hardware", name: "Hardware" },
+  { id: "software", name: "Software" },
+  { id: "network", name: "Network" },
+  { id: "access", name: "Access" },
+  { id: "other", name: "Other" },
+];
 
 export function CreateTicketDialog() {
   const [open, setOpen] = useState(false);
@@ -32,12 +56,50 @@ export function CreateTicketDialog() {
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [priority, setPriority] = useState("medium");
-  const [category, setCategory] = useState("other");
+  const [priority, setPriority] = useState("");
+  const [category, setCategory] = useState("");
   const [assetTag, setAssetTag] = useState("");
   const [assetName, setAssetName] = useState("");
   const [hasBounty, setHasBounty] = useState(false);
   const [bountyAmount, setBountyAmount] = useState(0);
+
+  const { data: configuredPriorities = [] } = useQuery<PriorityConfig[]>({
+    queryKey: ['/mcp/config/priorities'],
+    queryFn: () => mcpClient.getPriorities() as Promise<PriorityConfig[]>,
+  });
+
+  const { data: configuredCategories = [] } = useQuery<TicketCategory[]>({
+    queryKey: ['/mcp/config/categories'],
+    queryFn: () => mcpClient.getCategories() as Promise<TicketCategory[]>,
+  });
+
+  const priorities = configuredPriorities.length > 0 
+    ? [...configuredPriorities].sort((a, b) => a.level - b.level)
+    : defaultPriorities;
+  
+  const categories = configuredCategories.length > 0 
+    ? configuredCategories.filter(c => c.isActive)
+    : defaultCategories;
+
+  const defaultPriority = priorities.find(p => p.name.toLowerCase() === "medium")?.name.toLowerCase() 
+    || priorities[Math.floor(priorities.length / 2)]?.name.toLowerCase() 
+    || "medium";
+  
+  const defaultCategory = categories.find(c => c.name.toLowerCase() === "other")?.name.toLowerCase()
+    || categories[categories.length - 1]?.name.toLowerCase()
+    || "other";
+
+  useEffect(() => {
+    if (!priority && priorities.length > 0) {
+      setPriority(defaultPriority);
+    }
+  }, [priority, priorities.length, defaultPriority]);
+
+  useEffect(() => {
+    if (!category && categories.length > 0) {
+      setCategory(defaultCategory);
+    }
+  }, [category, categories.length, defaultCategory]);
 
   const createMutation = useMutation({
     mutationFn: (data: CreateTicketData) => mcpClient.createTicket(data),
@@ -64,8 +126,8 @@ export function CreateTicketDialog() {
   const resetForm = () => {
     setTitle("");
     setDescription("");
-    setPriority("medium");
-    setCategory("other");
+    setPriority(defaultPriority);
+    setCategory(defaultCategory);
     setAssetTag("");
     setAssetName("");
     setHasBounty(false);
@@ -134,10 +196,17 @@ export function CreateTicketDialog() {
                     <SelectValue placeholder="Select priority" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                    <SelectItem value="critical">Critical</SelectItem>
+                    {priorities.map((p) => (
+                      <SelectItem key={p.id} value={p.name.toLowerCase()}>
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: p.color }}
+                          />
+                          {p.name}
+                        </div>
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -148,11 +217,11 @@ export function CreateTicketDialog() {
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="hardware">Hardware</SelectItem>
-                    <SelectItem value="software">Software</SelectItem>
-                    <SelectItem value="network">Network</SelectItem>
-                    <SelectItem value="access">Access</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
+                    {categories.map((c) => (
+                      <SelectItem key={c.id} value={c.name.toLowerCase()}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

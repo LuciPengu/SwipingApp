@@ -157,4 +157,10 @@ export const mcpClient = {
   
   getActivityEvents: (limit?: number) => 
     mcpRequest('GET', `/activity/events${limit ? `?limit=${limit}` : ''}`),
+  
+  getOrganizationMembers: () => mcpRequest('GET', '/organizations/members'),
+  updateMemberRole: (memberId: string, role: string) => 
+    mcpRequest('PUT', `/organizations/members/${memberId}/role`, { role }),
+  removeMember: (memberId: string) => 
+    mcpRequest('DELETE', `/organizations/members/${memberId}`),
 };
