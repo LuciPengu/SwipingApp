@@ -1086,6 +1086,11 @@ async def join_organization(slug: str, user = Depends(get_current_user)):
         
         org_data = org.data[0]
         
+        # Check if there are any existing members in this organization
+        existing_members = supabase.table("profiles").select("user_id").eq("organization_id", org_data["id"]).execute()
+        is_first_member = len(existing_members.data) == 0
+        role = "Admin" if is_first_member else "Agent"
+        
         # Check if profile exists, create if not
         profile_check = supabase.table("profiles").select("user_id").eq("user_id", user_id).execute()
         if not profile_check.data:
@@ -1096,17 +1101,21 @@ async def join_organization(slug: str, user = Depends(get_current_user)):
                 "display_name": user.email.split("@")[0] if user.email else "User",
                 "organization_id": org_data["id"],
                 "organization_name": org_data["name"],
-                "role": "Agent",
+                "role": role,
                 "created_at": datetime.utcnow().isoformat(),
                 "updated_at": datetime.utcnow().isoformat()
             }).execute()
         else:
             # Update existing profile
-            supabase.table("profiles").update({
+            update_data = {
                 "organization_id": org_data["id"],
                 "organization_name": org_data["name"],
                 "updated_at": datetime.utcnow().isoformat()
-            }).eq("user_id", user_id).execute()
+            }
+            # Only set role to Admin if first member
+            if is_first_member:
+                update_data["role"] = "Admin"
+            supabase.table("profiles").update(update_data).eq("user_id", user_id).execute()
         
         return db_to_organization(org_data)
     except HTTPException:
