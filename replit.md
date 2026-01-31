@@ -234,6 +234,8 @@ CREATE INDEX idx_activity_events_org_created ON activity_events(organization_id,
 ```
 
 ## Recent Changes
+- Added team member management in settings (view members, update roles, remove members)
+- Fixed create ticket dialog to use configured priorities/categories with proper defaults
 - Added activity wall/feed showing points earned, tickets resolved, and team activity
 - Added ticket filtering and sorting (priority, category, search, sort by date/SLA/priority)
 - Added configurable priorities with custom point values per organization
