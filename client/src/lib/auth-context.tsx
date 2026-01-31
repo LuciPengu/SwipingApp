@@ -45,8 +45,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error ? new Error(error.message) : null };
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    
+    if (error) {
+      console.error('Sign in error:', error);
+      // Provide more helpful error messages
+      if (error.message.includes('Email not confirmed')) {
+        return { error: new Error('Email not confirmed. Run this SQL in Supabase to confirm: UPDATE auth.users SET email_confirmed_at = NOW() WHERE email = \'' + email + '\';') };
+      }
+      if (error.message.includes('Invalid login credentials')) {
+        return { error: new Error('Invalid email or password. Please check your credentials and try again.') };
+      }
+      return { error: new Error(error.message) };
+    }
+    
+    if (!data.session) {
+      return { error: new Error('No session returned. Please try again.') };
+    }
+    
+    return { error: null };
   };
 
   const signUp = async (email: string, password: string) => {
